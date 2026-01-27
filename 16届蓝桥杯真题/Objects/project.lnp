@@ -1,0 +1,7 @@
+".\Objects\main.obj",
+".\Objects\digital_tube.obj",
+".\Objects\one_wire.obj",
+".\Objects\delay.obj",
+".\Objects\init.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 

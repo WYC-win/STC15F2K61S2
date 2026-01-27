@@ -39,7 +39,7 @@ void Uart1_Isr(void) interrupt 4
 		if (SBUF & 0x01) 
 		{
 			while(1)
-			{
+			{	
 				P0=0xFE;
 				Delay100ms();
 				P0=0xFF;

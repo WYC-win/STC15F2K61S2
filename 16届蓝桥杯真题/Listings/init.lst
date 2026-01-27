@@ -1,0 +1,36 @@
+C51 COMPILER V9.57.0.0   INIT                                                              01/27/2026 21:31:21 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE INIT
+OBJECT MODULE PLACED IN .\Objects\init.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE init.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\init
+                    -.lst) OBJECT(.\Objects\init.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          void init(void)
+   3          {
+   4   1      // 关外设（按书里的 Cls_Peripheral 思路写）
+   5   1          P0 = 0xFF;
+   6   1          P2 = (P2 & 0x1F) | 0x80;   // Y4C（LED锁存）
+   7   1          P2 &= 0x1F;
+   8   1      
+   9   1          P0 = 0x00;
+  10   1          P2 = (P2 & 0x1F) | 0xA0;   // Y5C（驱动器锁存）
+  11   1          P2 &= 0x1F;
+  12   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     29    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

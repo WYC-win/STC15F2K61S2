@@ -1,0 +1,62 @@
+C51 COMPILER V9.57.0.0   ONE_WIRE                                                          01/27/2026 21:31:21 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE ONE_WIRE
+OBJECT MODULE PLACED IN .\Objects\one_wire.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE one_wire.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -one_wire.lst) OBJECT(.\Objects\one_wire.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          
+   3          sbit one_wire_DQ=P1^4;
+   4          void Delay70us(void)    //@12.000MHz
+   5          {
+   6   1              unsigned char data i;
+   7   1      
+   8   1              _nop_();
+   9   1              _nop_();
+  10   1              i = 207;
+  11   1              while (--i);
+  12   1      }
+  13          
+  14          void Delay500us(void)   //@12.000MHz
+  15          {
+  16   1              unsigned char data i, j;
+  17   1      
+  18   1              i = 6;
+  19   1              j = 211;
+  20   1              do
+  21   1              {
+  22   2                      while (--j);
+  23   2              } while (--i);
+  24   1      }
+  25          
+  26          
+  27          unsigned char one_wire_init(void)
+  28          {
+  29   1              unsigned char ackbit;
+  30   1              one_wire_DQ=1;
+  31   1              one_wire_DQ=0;
+  32   1              Delay500us();
+  33   1              one_wire_DQ=1;
+  34   1              Delay70us();
+  35   1              ackbit=one_wire_DQ;
+  36   1              Delay500us();
+  37   1              return ackbit;
+  38   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     38    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
