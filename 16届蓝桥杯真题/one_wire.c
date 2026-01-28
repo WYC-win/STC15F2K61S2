@@ -1,38 +1,127 @@
 #include <STC15F2K60S2.H>
+#include <intrins.h> 
+sbit onewire_DQ=P1^4;
 
-sbit one_wire_DQ=P1^4;
-void Delay70us(void)	//@12.000MHz
+void Delayus(unsigned int xus)	//@12.000MHz
 {
+	unsigned char tem=xus/5;
 	unsigned char data i;
-
-	_nop_();
-	_nop_();
-	i = 207;
-	while (--i);
-}
-
-void Delay500us(void)	//@12.000MHz
-{
-	unsigned char data i, j;
-
-	i = 6;
-	j = 211;
-	do
+	while(tem--)
 	{
-		while (--j);
-	} while (--i);
+		_nop_();
+		_nop_();
+		i = 12;
+		while (--i);
+	}
+
 }
 
 
-unsigned char one_wire_init(void)
+//void Delay5us(void)	//@12.000MHz
+//{
+//	unsigned char data i;
+
+//	_nop_();
+//	_nop_();
+//	i = 12;
+//	while (--i);
+//}
+
+//void Delay50us(void)	//@12.000MHz
+//{
+//	unsigned char data i;
+
+//	_nop_();
+//	_nop_();
+//	i = 147;
+//	while (--i);
+//}
+
+//void Delay10us(void)	//@12.000MHz
+//{
+//	unsigned char data i;
+
+//	_nop_();
+//	_nop_();
+//	i = 27;
+//	while (--i);
+//}
+
+
+//void Delay70us(void)	//@12.000MHz
+//{
+//	unsigned char data i;
+
+//	_nop_();
+//	_nop_();
+//	i = 207;
+//	while (--i);
+//}
+
+//void Delay500us(void)	//@12.000MHz
+//{
+//	unsigned char data i, j;
+
+//	i = 6;
+//	j = 211;
+//	do
+//	{
+//		while (--j);
+//	} while (--i);
+//}
+
+
+unsigned char onewire_init(void)
 {
 	unsigned char ackbit;
-	one_wire_DQ=1;
-	one_wire_DQ=0;
-	Delay500us();
-	one_wire_DQ=1;
-	Delay70us();
-	ackbit=one_wire_DQ;
-	Delay500us();
+	onewire_DQ=1;
+	onewire_DQ=0;
+	Delayus(500);
+	onewire_DQ=1;
+	Delayus(70);
+	ackbit=onewire_DQ;
+	Delayus(500);
 	return ackbit;
+}
+
+void onewire_sendbit(unsigned char Bit)
+{
+	onewire_DQ=0;
+	Delayus(10);
+	onewire_DQ=Bit;
+	Delayus(50);
+	onewire_DQ=1;
+}
+
+unsigned char onewire_receivebit(void)
+{
+	unsigned char Bit;
+	onewire_DQ=0;
+	Delayus(5);
+	onewire_DQ=1;
+	Delayus(5);
+	Bit=onewire_DQ;
+	Delayus(50);
+	return Bit;
+}
+
+void onewire_sendbyte(unsigned char byte)
+{
+	unsigned char i;
+	for(i=0;i<8;i++)
+	{
+		onewire_sendbit(byte&(0x01<<i));
+	}
+}
+
+unsigned char onewire_receivebyte(void)
+{
+
+	unsigned char i;
+	unsigned char byte=0x00;
+	for(i=0;i<8;i++)
+	{
+		if(onewire_receivebit()){byte|=(0x01<<i);}
+	}
+	return byte;
 }

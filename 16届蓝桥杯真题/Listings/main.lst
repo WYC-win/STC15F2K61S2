@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              01/27/2026 21:31:21 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              01/28/2026 14:20:31 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -13,39 +13,43 @@ line level    source
    3          #include "delay.h"
    4          #include "digital_tube.h"
    5          #include "init.h"
-   6          unsigned char num;
-   7          unsigned long tem;
-   8          void main()
-   9          {
-  10   1              init();
-  11   1              while(1)
-  12   1              {
-  13   2                      digital_tube(1,num);
-  14   2      //              digital_tube(2,2);
-  15   2      //              digital_tube(3,3);
-  16   2      //              digital_tube(4,4);
-  17   2      //              digital_tube(5,5);
-  18   2      //              digital_tube(6,6);
-  19   2      //              digital_tube(7,7);
-  20   2      //              digital_tube(8,8);
-  21   2                      tem++;
-  22   2                      if(tem>1000)
-  23   2                      {
-  24   3                              num++;
-  25   3                              tem=0;
-  26   3                      }
-  27   2                      if(num>15)
-  28   2                      {num=0;}
-  29   2              }
-  30   1      }
+   6          #include "DS18B20.h"
+   7          #include "uart.h"
+   8          
+   9          int T,bai,shi,ge,i;
+  10          
+  11          void main()
+  12          {
+  13   1              init();
+  14   1              DS18B20_convertT();
+  15   1              delay(1000);
+  16   1              while(1)
+  17   1              {
+  18   2                      DS18B20_convertT();
+  19   2                      delay(1000);
+  20   2                      T=DS18B20_readT();
+  21   2                      bai=T/100;
+  22   2                      shi=T%100/10;
+  23   2                      ge=T%100%10;
+  24   2                      for(i=0;i<200;i++)
+  25   2                      {
+  26   3                              digital_tube(1,bai);
+  27   3                              digital_tube(2,shi);
+  28   3                              digital_tube(3,ge);
+  29   3                      }
+  30   2              }
+  31   1                      
+  32   1      
+  33   1      
+  34   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     78    ----
+   CODE SIZE        =    143    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      5    ----
+   DATA SIZE        =     10    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.

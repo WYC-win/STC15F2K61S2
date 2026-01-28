@@ -1,0 +1,212 @@
+C51 COMPILER V9.57.0.0   LCD1602                                                           01/28/2026 12:55:06 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE LCD1602
+OBJECT MODULE PLACED IN .\Objects\LCD1602.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE LCD1602.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\L
+                    -CD1602.lst) OBJECT(.\Objects\LCD1602.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include <intrins.h>
+   3          
+   4          /* ========== CT107D 引脚映射（按原理图） ========== */
+   5          sbit LCD_RS  = P2^0;
+   6          sbit LCD_RW  = P2^1;
+   7          sbit LCD_EN  = P1^2;
+   8          
+   9          sbit CT_A0   = P2^5;
+  10          sbit CT_A1   = P2^6;
+  11          sbit CT_A2   = P2^7;
+  12          
+  13          sbit CT_WR   = P4^2;   // MCU_WR（/WR）
+  14          
+  15          /* ========== 内部：往U7(段码锁存=Y7C)写 8 位数据，输出到 DD0~DD7 ========== */
+  16          static void CT107D_WriteU7(unsigned char dat)
+  17          {
+  18   1          P0 = dat;                 // 数据先上 P0（送到 U7 的 D0~D7）
+  19   1      
+  20   1          /* 选通 Y7C：A2A1A0 = 111 */
+  21   1          CT_A2 = 1; CT_A1 = 1; CT_A0 = 1;
+  22   1      
+  23   1          /* 产生 /WR 脉冲，让“Y7C门控”真正把数据锁存进去 */
+  24   1          CT_WR = 0;
+  25   1          _nop_(); _nop_(); _nop_();
+  26   1          CT_WR = 1;
+  27   1      
+  28   1          /* 关闭选通，避免影响其它锁存 */
+  29   1          CT_A2 = 0; CT_A1 = 0; CT_A0 = 0;
+  30   1      }
+  31          
+  32          /* ========== A2风格的1ms级延时（12MHz下大致可用） ========== */
+  33          void LCD_Delay()
+  34          {
+  35   1          unsigned char i, j;
+  36   1          i = 2;
+  37   1          j = 239;
+  38   1          do { while (--j); } while (--i);
+  39   1      }
+  40          
+  41          /* ========== 写命令：RS=0 ========== */
+  42          void LCD_WriteCommand(unsigned char Command)
+  43          {
+  44   1          LCD_RS = 0;
+  45   1          LCD_RW = 0;
+  46   1      
+  47   1          CT107D_WriteU7(Command);   // ★与A2唯一关键差别：数据不是直接P0，而是锁存到DD总
+             -线
+  48   1      
+  49   1          LCD_EN = 1;
+  50   1          LCD_Delay();
+  51   1          LCD_EN = 0;
+  52   1          LCD_Delay();
+  53   1      }
+C51 COMPILER V9.57.0.0   LCD1602                                                           01/28/2026 12:55:06 PAGE 2   
+
+  54          
+  55          /* ========== 写数据：RS=1 ========== */
+  56          void LCD_WriteData(unsigned char Data)
+  57          {
+  58   1          LCD_RS = 1;
+  59   1          LCD_RW = 0;
+  60   1      
+  61   1          CT107D_WriteU7(Data);
+  62   1      
+  63   1          LCD_EN = 1;
+  64   1          LCD_Delay();
+  65   1          LCD_EN = 0;
+  66   1          LCD_Delay();
+  67   1      }
+  68          
+  69          void LCD_SetCursor(unsigned char Line,unsigned char Column)
+  70          {
+  71   1          if(Line==1)
+  72   1          {
+  73   2              LCD_WriteCommand(0x80|(Column-1));
+  74   2          }
+  75   1          else if(Line==2)
+  76   1          {
+  77   2              LCD_WriteCommand(0x80|(Column-1+0x40));
+  78   2          }
+  79   1      }
+  80          
+  81          /* ========== 初始化（A2同款） ========== */
+  82          void LCD_Init()
+  83          {
+  84   1          /* 建议上电先保证 /WR 为高（空闲态） */
+  85   1          CT_WR = 1;
+  86   1      
+  87   1          /* 1602 上电需要一点等待 */
+  88   1          LCD_Delay(); LCD_Delay(); LCD_Delay(); LCD_Delay();
+  89   1      
+  90   1          LCD_WriteCommand(0x38); // 8位总线，两行，5*7
+  91   1          LCD_WriteCommand(0x0c); // 显示开，光标关，闪烁关
+  92   1          LCD_WriteCommand(0x06); // 光标右移，画面不动
+  93   1          LCD_WriteCommand(0x01); // 清屏
+  94   1      }
+  95          
+  96          /* ========== 显示函数（完全照A2写法） ========== */
+  97          void LCD_ShowChar(unsigned char Line,unsigned char Column,char Char)
+  98          {
+  99   1          LCD_SetCursor(Line,Column);
+ 100   1          LCD_WriteData(Char);
+ 101   1      }
+ 102          
+ 103          void LCD_ShowString(unsigned char Line,unsigned char Column,char *String)
+ 104          {
+ 105   1          unsigned char i;
+ 106   1          LCD_SetCursor(Line,Column);
+ 107   1          for(i=0;String[i]!='\0';i++)
+ 108   1          {
+ 109   2              LCD_WriteData(String[i]);
+ 110   2          }
+ 111   1      }
+ 112          
+ 113          int LCD_Pow(int X,int Y)
+ 114          {
+ 115   1          unsigned char i;
+C51 COMPILER V9.57.0.0   LCD1602                                                           01/28/2026 12:55:06 PAGE 3   
+
+ 116   1          int Result=1;
+ 117   1          for(i=0;i<Y;i++)
+ 118   1          {
+ 119   2              Result*=X;
+ 120   2          }
+ 121   1          return Result;
+ 122   1      }
+ 123          
+ 124          void LCD_ShowNum(unsigned char Line,unsigned char Column,unsigned int Number,unsigned char Length)
+ 125          {
+ 126   1          unsigned char i;
+ 127   1          LCD_SetCursor(Line,Column);
+ 128   1          for(i=Length;i>0;i--)
+ 129   1          {
+ 130   2              LCD_WriteData(Number/LCD_Pow(10,i-1)%10+'0');
+ 131   2          }
+ 132   1      }
+ 133          
+ 134          void LCD_ShowSignedNum(unsigned char Line,unsigned char Column,int Number,unsigned char Length)
+ 135          {
+ 136   1          unsigned char i;
+ 137   1          unsigned int Number1;
+ 138   1          LCD_SetCursor(Line,Column);
+ 139   1          if(Number>=0)
+ 140   1          {
+ 141   2              LCD_WriteData('+');
+ 142   2              Number1=Number;
+ 143   2          }
+ 144   1          else
+ 145   1          {
+ 146   2              LCD_WriteData('-');
+ 147   2              Number1=-Number;
+ 148   2          }
+ 149   1          for(i=Length;i>0;i--)
+ 150   1          {
+ 151   2              LCD_WriteData(Number1/LCD_Pow(10,i-1)%10+'0');
+ 152   2          }
+ 153   1      }
+ 154          
+ 155          void LCD_ShowHexNum(unsigned char Line,unsigned char Column,unsigned int Number,unsigned char Length)
+ 156          {
+ 157   1          unsigned char i,SingleNumber;
+ 158   1          LCD_SetCursor(Line,Column);
+ 159   1          for(i=Length;i>0;i--)
+ 160   1          {
+ 161   2              SingleNumber=Number/LCD_Pow(16,i-1)%16;
+ 162   2              if(SingleNumber<10)
+ 163   2              {
+ 164   3                  LCD_WriteData(SingleNumber+'0');
+ 165   3              }
+ 166   2              else
+ 167   2              {
+ 168   3                  LCD_WriteData(SingleNumber-10+'A');
+ 169   3              }
+ 170   2          }
+ 171   1      }
+ 172          
+ 173          void LCD_ShowBinNum(unsigned char Line,unsigned char Column,unsigned int Number,unsigned char Length)
+ 174          {
+ 175   1          unsigned char i;
+ 176   1          LCD_SetCursor(Line,Column);
+ 177   1          for(i=Length;i>0;i--)
+C51 COMPILER V9.57.0.0   LCD1602                                                           01/28/2026 12:55:06 PAGE 4   
+
+ 178   1          {
+ 179   2              LCD_WriteData(Number/LCD_Pow(2,i-1)%2+'0');
+ 180   2          }
+ 181   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    430    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      29
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

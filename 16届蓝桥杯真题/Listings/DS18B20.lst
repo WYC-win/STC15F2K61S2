@@ -1,0 +1,51 @@
+C51 COMPILER V9.57.0.0   DS18B20                                                           01/28/2026 14:20:31 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN .\Objects\DS18B20.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE DS18B20.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\D
+                    -S18B20.lst) OBJECT(.\Objects\DS18B20.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "one_wire.h"
+   3          
+   4          #define DS18B20_skiprom 0xCC
+   5          #define DS18B20_convert_T 0x44
+   6          #define DS18B20_read_scratchpad 0xBE
+   7          void DS18B20_convertT(void)
+   8          {
+   9   1              onewire_init();
+  10   1              onewire_sendbyte(DS18B20_skiprom);
+  11   1              onewire_sendbyte(DS18B20_convert_T);
+  12   1      }
+  13          
+  14          float DS18B20_readT(void)
+  15          {
+  16   1              unsigned char TLSB,TMSB;
+  17   1              int temp;
+  18   1              float T;
+  19   1              onewire_init();
+  20   1              onewire_sendbyte(DS18B20_skiprom);
+  21   1              onewire_sendbyte(DS18B20_read_scratchpad);
+  22   1              TLSB=onewire_receivebyte();
+  23   1              TMSB=onewire_receivebyte();
+  24   1              temp=(TMSB<<8)|TLSB;
+  25   1              T=temp/16.0;
+  26   1              return T;
+  27   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     56    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

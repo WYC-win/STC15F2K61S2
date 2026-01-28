@@ -3,28 +3,32 @@
 #include "delay.h"
 #include "digital_tube.h"
 #include "init.h"
-unsigned char num;
-unsigned long tem;
+#include "DS18B20.h"
+#include "uart.h"
+
+int T,bai,shi,ge,i;
+
 void main()
 {
 	init();
+	DS18B20_convertT();
+	delay(1000);
 	while(1)
 	{
-		digital_tube(1,num);
-//		digital_tube(2,2);
-//		digital_tube(3,3);
-//		digital_tube(4,4);
-//		digital_tube(5,5);
-//		digital_tube(6,6);
-//		digital_tube(7,7);
-//		digital_tube(8,8);
-		tem++;
-		if(tem>1000)
+		DS18B20_convertT();
+		delay(1000);
+		T=DS18B20_readT();
+		bai=T/100;
+		shi=T%100/10;
+		ge=T%100%10;
+		for(i=0;i<200;i++)
 		{
-			num++;
-			tem=0;
+			digital_tube(1,bai);
+			digital_tube(2,shi);
+			digital_tube(3,ge);
 		}
-		if(num>15)
-		{num=0;}
 	}
+		
+
+
 }
