@@ -16,61 +16,6 @@ void Delayus(unsigned int xus)	//@12.000MHz
 
 }
 
-
-//void Delay5us(void)	//@12.000MHz
-//{
-//	unsigned char data i;
-
-//	_nop_();
-//	_nop_();
-//	i = 12;
-//	while (--i);
-//}
-
-//void Delay50us(void)	//@12.000MHz
-//{
-//	unsigned char data i;
-
-//	_nop_();
-//	_nop_();
-//	i = 147;
-//	while (--i);
-//}
-
-//void Delay10us(void)	//@12.000MHz
-//{
-//	unsigned char data i;
-
-//	_nop_();
-//	_nop_();
-//	i = 27;
-//	while (--i);
-//}
-
-
-//void Delay70us(void)	//@12.000MHz
-//{
-//	unsigned char data i;
-
-//	_nop_();
-//	_nop_();
-//	i = 207;
-//	while (--i);
-//}
-
-//void Delay500us(void)	//@12.000MHz
-//{
-//	unsigned char data i, j;
-
-//	i = 6;
-//	j = 211;
-//	do
-//	{
-//		while (--j);
-//	} while (--i);
-//}
-
-
 unsigned char onewire_init(void)
 {
 	unsigned char ackbit;
