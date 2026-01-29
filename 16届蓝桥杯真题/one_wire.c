@@ -2,6 +2,38 @@
 #include <intrins.h> 
 sbit onewire_DQ=P1^4;
 
+void Delay10us(void)	//@12.000MHz
+{
+	unsigned char data i;
+
+	_nop_();
+	_nop_();
+	i = 27;
+	while (--i);
+}
+
+void Delay50us(void)	//@12.000MHz
+{
+	unsigned char data i;
+
+	_nop_();
+	_nop_();
+	i = 147;
+	while (--i);
+}
+
+void Delay5us(void)	//@12.000MHz
+{
+	unsigned char data i;
+
+	_nop_();
+	_nop_();
+	i = 12;
+	while (--i);
+}
+
+
+
 void Delayus(unsigned int xus)	//@12.000MHz
 {
 	unsigned char tem=xus/5;
@@ -32,9 +64,9 @@ unsigned char onewire_init(void)
 void onewire_sendbit(unsigned char Bit)
 {
 	onewire_DQ=0;
-	Delayus(10);
+	Delay10us();
 	onewire_DQ=Bit;
-	Delayus(50);
+	Delay50us();
 	onewire_DQ=1;
 }
 
@@ -42,11 +74,11 @@ unsigned char onewire_receivebit(void)
 {
 	unsigned char Bit;
 	onewire_DQ=0;
-	Delayus(5);
+	Delay5us();
 	onewire_DQ=1;
-	Delayus(5);
+	Delay5us();
 	Bit=onewire_DQ;
-	Delayus(50);
+	Delay50us();
 	return Bit;
 }
 

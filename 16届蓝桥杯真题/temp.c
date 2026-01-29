@@ -1,3 +1,6 @@
+//读取单个温度的主函数代码
+
+
 #include <STC15F2K60S2.H>
 #include "one_wire.h"
 #include "delay.h"
