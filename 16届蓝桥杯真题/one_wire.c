@@ -1,3 +1,9 @@
+
+// Header:单总线通信驱动程序
+// File Name: 
+// Author:WYC
+// Date:2026 1.28
+
 #include <STC15F2K60S2.H>
 #include <intrins.h> 
 sbit onewire_DQ=P1^4;

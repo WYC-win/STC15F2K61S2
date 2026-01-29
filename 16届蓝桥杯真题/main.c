@@ -5,12 +5,15 @@
 #include "init.h"
 #include "DS18B20.h"
 #include "uart.h"
-
+#include "kbd.h"
 int T,bai,shi,ge,i;
-
 void main()
 {
 	init();
+	while(1)
+	{
+		digital_tube(1,num);
+	}
 	DS18B20_convertT();
 	delay(1000);
 	while(1)

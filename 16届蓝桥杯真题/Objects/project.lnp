@@ -4,6 +4,7 @@
 ".\Objects\delay.obj",
 ".\Objects\init.obj",
 ".\Objects\DS18B20.obj",
-".\Objects\uart.obj" 
+".\Objects\uart.obj",
+".\Objects\kbd.obj" 
 TO ".\Objects\project" 
 PRINT(".\Listings\project.m51") RAMSIZE(256) 

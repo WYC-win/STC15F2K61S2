@@ -1,3 +1,9 @@
+
+// Header:STC15初始化驱动程序
+// File Name: 
+// Author:WYC
+// Date:2026 1.27
+
 #include <STC15F2K60S2.H>
 void init(void)
 {
