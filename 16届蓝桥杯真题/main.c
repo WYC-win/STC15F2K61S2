@@ -33,11 +33,11 @@ void environment()
 	else if(light_intensity_digtal<151)light_intensity=4;
 	for(i=0;i<200;i++)
 	{
-		digital_tube(1,12);
-		digital_tube(2,tem%100/10);
-		digital_tube(3,tem%100%10);
-		digital_tube(7,16);
-		digital_tube(8,light_intensity);
+		digital_tubefixed(1,12);
+		digital_tubefixed(2,tem%100/10);
+		digital_tubefixed(3,tem%100%10);
+		digital_tube(7,0xC8);
+		digital_tubefixed(8,light_intensity);
 	}
 	tem=DS18B20_readT();
 }
