@@ -1,10 +1,12 @@
 ".\Objects\main.obj",
 ".\Objects\digital_tube.obj",
-".\Objects\one_wire.obj",
 ".\Objects\delay.obj",
 ".\Objects\init.obj",
 ".\Objects\DS18B20.obj",
 ".\Objects\uart.obj",
-".\Objects\kbd.obj" 
+".\Objects\kbd.obj",
+".\Objects\iic.obj",
+".\Objects\onewire.obj",
+".\Objects\AD_DA.obj" 
 TO ".\Objects\project" 
 PRINT(".\Listings\project.m51") RAMSIZE(256) 

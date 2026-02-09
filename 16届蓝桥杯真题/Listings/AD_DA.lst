@@ -1,0 +1,71 @@
+C51 COMPILER V9.57.0.0   AD_DA                                                             02/09/2026 16:13:04 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE AD_DA
+OBJECT MODULE PLACED IN .\Objects\AD_DA.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE AD_DA.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\AD_
+                    -DA.lst) OBJECT(.\Objects\AD_DA.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "iic.h"
+   3          //#define ADCW 0x90
+   4          //#define ADCR 0x91
+   5          
+   6          
+   7          void DA_write(unsigned char dat)
+   8          {
+   9   1              I2CStart();
+  10   1              I2CSendByte(0x90);
+  11   1              I2CWaitAck();
+  12   1              I2CSendByte(0x40);
+  13   1              I2CWaitAck();
+  14   1              I2CSendByte(dat);
+  15   1              I2CWaitAck();
+  16   1              I2CStop();
+  17   1      }
+  18          unsigned char AD_read(unsigned char adr)
+  19          {
+  20   1              unsigned char AIN;
+  21   1              I2CStart();
+  22   1              I2CSendByte(0x90);
+  23   1              I2CWaitAck();
+  24   1              I2CSendByte(adr);
+  25   1              I2CWaitAck();
+  26   1              I2CStop();
+  27   1              
+  28   1      //      I2CStart();
+  29   1      //      I2CSendByte(0x91);      // 读地址
+  30   1      //      I2CWaitAck();
+  31   1      //      AIN = I2CReceiveByte(); // 读取（但不使用这个值）
+  32   1      //      I2CSendAck(1);          // 发送NACK
+  33   1      //      I2CStop();
+  34   1              
+  35   1              I2CStart();
+  36   1              I2CSendByte(0x91);
+  37   1              I2CWaitAck();
+  38   1              AIN=I2CReceiveByte();
+  39   1              I2CSendAck(1);
+  40   1              I2CStop();
+  41   1      
+  42   1              return AIN;
+  43   1      }
+  44          
+  45          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     83    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+C51 COMPILER V9.57.0.0   AD_DA                                                             02/09/2026 16:13:04 PAGE 2   
+
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

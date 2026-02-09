@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   DIGITAL_TUBE                                                      01/29/2026 11:26:43 PAGE 1   
+C51 COMPILER V9.57.0.0   DIGITAL_TUBE                                                      02/09/2026 16:13:03 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE DIGITAL_TUBE
@@ -8,62 +8,71 @@ COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE digital_tube.c OPTIMIZE(8,SPEED)
 
 line level    source
 
-   1          #include <STC15F2K60S2.H>
-   2          #include "delay.h"
-   3          
-   4          
-   5          unsigned char digitaltube_number[16]={0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90,0x88,0x83,0xC6,0xA
-             -1,0x86,0x8E};
+   1          
+   2          // Header:数码管驱动程序
+   3          // File Name: 
+   4          // Author:WYC
+   5          // Date:2026 1.27
    6          
-   7          void digital_tube(unsigned char digitaltube_position, unsigned char number)
-   8          {
-   9   1          // -------- 位选：写入到 Y6C（数码管位选锁存）--------
-  10   1          switch(digitaltube_position)
-  11   1          {
-  12   2              case 1:P0=0x01;break;
-  13   2              case 2:P0=0x02;break;
-  14   2              case 3:P0=0x04;break;
-  15   2              case 4:P0=0x08;break;
-  16   2              case 5:P0=0x10;break;
-  17   2              case 6:P0=0x20;break;
-  18   2              case 7:P0=0x40;break;
-  19   2              case 8:P0=0x80;break;
-  20   2                      case 9:P0=0x90;break;
-  21   2                      case 10:P0=0x88;break;
-  22   2                      case 11:P0=0x83;break;
-  23   2                      case 12:P0=0xC6;break;
-  24   2                      case 13:P0=0xA1;break;
-  25   2                      case 14:P0=0x86;break;
-  26   2                      case 15:P0=0x8E;break;
-  27   2              default:P0=0xFF;break;
-  28   2          }
-  29   1          P2 = (P2 & 0x1F) | 0xC0;   // 选通 Y6C
-  30   1          P2 &= 0x1F;                // 关闭选通
-  31   1      
-  32   1          // -------- 段码：写入到 Y7C（数码管段选锁存）--------
-  33   1          P0 = digitaltube_number[number & 0x0F];
-  34   1          P2 = (P2 & 0x1F) | 0xE0;   // 选通 Y7C
-  35   1          P2 &= 0x1F;                // 关闭选通
-  36   1      
-  37   1          delay(2);
-  38   1      
-  39   1      /* -------- 消影（补的只有这里）-------- */
-  40   1              P0 = 0xFF;                     // 段码全灭
-  41   1              P2 = (P2 & 0x1F) | 0xE0;       // Y7C 段选锁存
-  42   1              P2 &= 0x1F;                    // 关闭选通
-  43   1      
-  44   1      }
+   7          #include <STC15F2K60S2.H>
+   8          #include "delay.h"
+   9          
+  10          
+  11          unsigned char digitaltube_number[19]={0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90,0x88,0x83,0xC6,0xA
+             -1,0x86,0x8E,0xC8,0xD3,0x30};
+  12          //n=16，L=17，P=18；
+  13          void digital_tube(unsigned char digitaltube_position, unsigned char number)
+  14          {
+  15   1          // -------- 位选：写入到 Y6C（数码管位选锁存）--------
+  16   1          switch(digitaltube_position)
+  17   1          {
+  18   2              case 1:P0=0x01;break;
+  19   2              case 2:P0=0x02;break;
+  20   2              case 3:P0=0x04;break;
+  21   2              case 4:P0=0x08;break;
+  22   2              case 5:P0=0x10;break;
+  23   2              case 6:P0=0x20;break;
+  24   2              case 7:P0=0x40;break;
+  25   2              case 8:P0=0x80;break;
+  26   2                      case 9:P0=0x90;break;
+  27   2                      case 10:P0=0x88;break;
+  28   2                      case 11:P0=0x83;break;
+  29   2                      case 12:P0=0xC6;break;
+  30   2                      case 13:P0=0xA1;break;
+  31   2                      case 14:P0=0x86;break;
+  32   2                      case 15:P0=0x8E;break;
+  33   2      //              case 16:P0=0x13;break;
+  34   2      //              case 17:P0=0xD3;break;
+  35   2      //              case 18:P0=0x30;break;
+  36   2              default:P0=0xFF;break;
+  37   2          }
+  38   1          P2 = (P2 & 0x1F) | 0xC0;   // 选通 Y6C
+  39   1          P2 &= 0x1F;                // 关闭选通
+  40   1      
+  41   1          // -------- 段码：写入到 Y7C（数码管段选锁存）--------
+  42   1          P0 = digitaltube_number[number];
+  43   1          P2 = (P2 & 0x1F) | 0xE0;   // 选通 Y7C
+  44   1          P2 &= 0x1F;                // 关闭选通
+  45   1      
+  46   1          delay(2);
+  47   1      
+  48   1      /* -------- 消影（补的只有这里）-------- */
+  49   1              P0 = 0xFF;                     // 段码全灭
+  50   1              P2 = (P2 & 0x1F) | 0xE0;       // Y7C 段选锁存
+  51   1              P2 &= 0x1F;                    // 关闭选通
+  52   1      
+  53   1      }
+C51 COMPILER V9.57.0.0   DIGITAL_TUBE                                                      02/09/2026 16:13:03 PAGE 2   
+
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    200    ----
+   CODE SIZE        =    198    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     16    ----
+   DATA SIZE        =     19    ----
    IDATA SIZE       =   ----    ----
-C51 COMPILER V9.57.0.0   DIGITAL_TUBE                                                      01/29/2026 11:26:43 PAGE 2   
-
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
 

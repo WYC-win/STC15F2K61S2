@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   DS18B20                                                           01/29/2026 11:26:44 PAGE 1   
+C51 COMPILER V9.57.0.0   DS18B20                                                           02/09/2026 16:13:03 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE DS18B20
@@ -8,33 +8,39 @@ COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE DS18B20.c OPTIMIZE(8,SPEED) BROW
 
 line level    source
 
-   1          #include <STC15F2K60S2.H>
-   2          #include "one_wire.h"
-   3          
-   4          #define DS18B20_skiprom 0xCC
-   5          #define DS18B20_convert_T 0x44
-   6          #define DS18B20_read_scratchpad 0xBE
-   7          void DS18B20_convertT(void)
-   8          {
-   9   1              onewire_init();
-  10   1              onewire_sendbyte(DS18B20_skiprom);
-  11   1              onewire_sendbyte(DS18B20_convert_T);
-  12   1      }
-  13          
-  14          float DS18B20_readT(void)
-  15          {
-  16   1              unsigned char TLSB,TMSB;
-  17   1              int temp;
-  18   1              float T;
-  19   1              onewire_init();
-  20   1              onewire_sendbyte(DS18B20_skiprom);
-  21   1              onewire_sendbyte(DS18B20_read_scratchpad);
-  22   1              TLSB=onewire_receivebyte();
-  23   1              TMSB=onewire_receivebyte();
-  24   1              temp=(TMSB<<8)|TLSB;
-  25   1              T=temp/16.0;
-  26   1              return T;
-  27   1      }
+   1          
+   2          // Header:DS18B20温度传感器驱动
+   3          // File Name: 
+   4          // Author:WYC
+   5          // Date:2026 1.28
+   6          
+   7          #include <STC15F2K60S2.H>
+   8          #include "onewire.h"
+   9          
+  10          #define DS18B20_skiprom 0xCC
+  11          #define DS18B20_convert_T 0x44
+  12          #define DS18B20_read_scratchpad 0xBE
+  13          void DS18B20_convertT(void)
+  14          {
+  15   1              init_ds18b20();
+  16   1              Write_DS18B20(DS18B20_skiprom);
+  17   1              Write_DS18B20(DS18B20_convert_T);
+  18   1      }
+  19          
+  20          float DS18B20_readT(void)
+  21          {
+  22   1              unsigned char TLSB,TMSB;
+  23   1              int temp;
+  24   1              float T;
+  25   1              init_ds18b20();
+  26   1              Write_DS18B20(DS18B20_skiprom);
+  27   1              Write_DS18B20(DS18B20_read_scratchpad);
+  28   1              TLSB=Read_DS18B20();
+  29   1              TMSB=Read_DS18B20();
+  30   1              temp=(TMSB<<8)|TLSB;
+  31   1              T=temp/16.0;
+  32   1              return T;
+  33   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE

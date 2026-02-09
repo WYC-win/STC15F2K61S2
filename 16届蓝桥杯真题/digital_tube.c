@@ -8,8 +8,8 @@
 #include "delay.h"
 
 
-unsigned char digitaltube_number[16]={0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90,0x88,0x83,0xC6,0xA1,0x86,0x8E};
-
+unsigned char digitaltube_number[19]={0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90,0x88,0x83,0xC6,0xA1,0x86,0x8E,0xC8,0xD3,0x30};
+//n=16，L=17，P=18；
 void digital_tube(unsigned char digitaltube_position, unsigned char number)
 {
     // -------- 位选：写入到 Y6C（数码管位选锁存）--------
@@ -30,13 +30,16 @@ void digital_tube(unsigned char digitaltube_position, unsigned char number)
 		case 13:P0=0xA1;break;
 		case 14:P0=0x86;break;
 		case 15:P0=0x8E;break;
+//		case 16:P0=0x13;break;
+//		case 17:P0=0xD3;break;
+//		case 18:P0=0x30;break;
         default:P0=0xFF;break;
     }
     P2 = (P2 & 0x1F) | 0xC0;   // 选通 Y6C
     P2 &= 0x1F;                // 关闭选通
 
     // -------- 段码：写入到 Y7C（数码管段选锁存）--------
-    P0 = digitaltube_number[number & 0x0F];
+    P0 = digitaltube_number[number];
     P2 = (P2 & 0x1F) | 0xE0;   // 选通 Y7C
     P2 &= 0x1F;                // 关闭选通
 
