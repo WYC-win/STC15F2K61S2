@@ -8,23 +8,28 @@
 #include "iic.h"
 #include "onewire.h"
 #include "AD_DA.h"
+#include "superwave.h"
 void environment();
-int tem,i;
+void sport();
+int tem,i,distance;
 unsigned char light_intensity_digtal,light_intensity;
 void main()
 {
 	init();
 	tem=30;
+	distance=30;
 	DS18B20_convertT();
 	delay(750);
 	while(1)
 	{
-		environment();
+//		environment();
+		sport();
 	}
 }
 
 void environment()
 {
+	
 	DS18B20_convertT();
 	light_intensity_digtal=AD_read(0x01);
 	if(light_intensity_digtal>=151)light_intensity=1;
@@ -40,4 +45,14 @@ void environment()
 		digital_tubefixed(8,light_intensity);
 	}
 	tem=DS18B20_readT();
+}
+
+void sport()
+{
+	int dis1,dis2;
+	
+	digital_tubefixed(6,distance/100);
+	digital_tubefixed(7,distance%100/10);
+	digital_tubefixed(8,distance%100%10);
+	distance=superwave_getdistance();
 }

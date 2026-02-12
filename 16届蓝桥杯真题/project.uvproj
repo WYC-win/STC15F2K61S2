@@ -459,6 +459,16 @@
               <FileType>5</FileType>
               <FilePath>.\AD_DA.h</FilePath>
             </File>
+            <File>
+              <FileName>superwave.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\superwave.c</FilePath>
+            </File>
+            <File>
+              <FileName>superwave.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\superwave.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>
