@@ -7,6 +7,7 @@
 #include "superwave.h"
 #include "kbd_nb.h"
 
+
 /* ====================== 锁存选择 ====================== */
 #define LATCH_Y4C 0x80   /* LED */
 #define LATCH_Y5C 0xA0   /* 继电器/蜂鸣器/电机/步进/喇叭 */
