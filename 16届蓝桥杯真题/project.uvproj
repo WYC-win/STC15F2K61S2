@@ -469,6 +469,16 @@
               <FileType>5</FileType>
               <FilePath>.\superwave.h</FilePath>
             </File>
+            <File>
+              <FileName>kdb_nb.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\kdb_nb.c</FilePath>
+            </File>
+            <File>
+              <FileName>kbd_nb.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\kbd_nb.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

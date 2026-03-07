@@ -3,4 +3,5 @@
 
 void digital_tubefixed(unsigned char digitaltube_position, unsigned char number);
 void digital_tube(unsigned char digitaltube_position, unsigned char Code);
+extern unsigned char digitaltube_number[16];
 #endif
