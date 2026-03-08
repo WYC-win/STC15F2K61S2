@@ -94,7 +94,7 @@ void latch_write(unsigned char dat, unsigned char sel)
 {
     P0 = dat;
     P2 = (P2 & 0x1F) | sel;
-    P2 &= 0x1F;
+    P2 &= 0x1F;       //取消选通
 }
 
 /* LED 低电平点亮 */
@@ -184,7 +184,7 @@ void stat_display(void)
 void read_temp_data(void)
 {
     DS18B20_convertT();
-    tem = (unsigned int)(DS18B20_readT() + 0.5);
+    tem = (unsigned int)(DS18B20_readT() + 0.5);//四舍五入
 }
 
 void read_light_data(void)
@@ -221,7 +221,7 @@ void update_move_state(void)
     if(distance >= last_distance) delta = distance - last_distance;
     else delta = last_distance - distance;
 
-    if(move_lock_ms != 0) return;
+    if(move_lock_ms != 0) return;//return 直接退出
 
     if(delta < 5) move_state = MOVE_STOP;
     else if(delta < 10) move_state = MOVE_WALK;
@@ -275,7 +275,7 @@ void output_update(void)
     }
 
     /* 继电器吸合次数统计：上升沿计数 */
-    relay_now = (y5_on & RELAY_BIT) ? 1 : 0;
+    relay_now = (y5_on & RELAY_BIT) ? 1 : 0;  //(y5_on & RELAY_BIT)为真则为1，否则为0
     if(relay_now && !relay_last)
     {
         relay_count++;
@@ -397,11 +397,11 @@ void key_proc(void)
 /* ====================== 主函数 ====================== */
 void main(void)
 {
-    unsigned int last_key_ms  = 0;
-    unsigned int last_temp_ms = 0;
-    unsigned int last_lux_ms  = 0;
-    unsigned int last_dis_ms  = 0;
-    unsigned int last_mov_ms  = 0;
+    unsigned int last_key_ms  = 0;//按键
+    unsigned int last_temp_ms = 0;//温度
+    unsigned int last_lux_ms  = 0;//光敏
+    unsigned int last_dis_ms  = 0;//距离
+    unsigned int last_mov_ms  = 0;//运动状态
 
     init();
     Timer0_Init();
@@ -475,8 +475,11 @@ void main(void)
         {
             if(key_down_raw(KEY_S8) && key_down_raw(KEY_S9))
             {
-                combo_hold_ms++;
-                if(combo_hold_ms >= 2000)
+                if(combo_hold_ms == 0)
+                {
+                    combo_hold_ms = ms;   /* 记录组合键开始按下时刻 */
+                }
+                else if((unsigned int)(ms - combo_hold_ms) >= 2000)
                 {
                     relay_count = 0;
                     combo_hold_ms = 0;
@@ -494,210 +497,6 @@ void main(void)
     }
 }
 
-//#include <STC15F2K60S2.H>
-//#include "delay.h"
-//#include "digital_tube.h"
-//#include "init.h"
-//#include "DS18B20.h"
-//#include "uart.h"
-//#include "kbd.h"
-//#include "iic.h"
-//#include "onewire.h"
-//#include "AD_DA.h"
-//#include "superwave.h"
-//#include "kbd_nb.h"
-//void environment();
-//void sport();
-//void Parameter();
-//unsigned char page=0;//// 0环境 1运动 2参数 3统计
-//unsigned char para_page = 0;     // 0:PC  1:PL
 
-//unsigned int tem = 30;           // 当前温度整数值
-//unsigned int distance = 0;       // 当前距离
-//unsigned char light_adc = 0;     // 光敏ADC值
-//unsigned char light_level = 1;   // 光强等级 1~4
-
-//unsigned char tem_para = 30;     // 温度阈值
-//unsigned char dis_para = 30;     // 距离阈值
-
-//unsigned char key = 0;
-//unsigned char i = 0;
-
-//unsigned int ms=0;
-
-
-//void environment_display()
-//{
-//		digital_tubefixed(1,12);
-//		digital_tubefixed(2,tem%100/10);
-//		digital_tubefixed(3,tem%100%10);
-//		digital_tube(7,0xC8);
-//		digital_tubefixed(8,light_level);
-//}
-
-
-//void sport_display()
-//{
-
-//	digital_tube(1,0xC7);//L
-//	digital_tubefixed(6,distance/100);
-//	digital_tubefixed(7,distance%100/10);
-//	digital_tubefixed(8,distance%100%10);
-//}
-
-//void Parameter_display()//参数界面
-//{
-//	digital_tube(1,0x8C);//P
-//	if(para_page == 0)
-//	{
-//		digital_tubefixed(2,12);
-//		digital_tubefixed(7,tem_para/10);
-//		digital_tubefixed(8,tem_para%10);
-//	}
-//	else
-//	{
-//		digital_tube(2,0xC7);//L
-//		digital_tubefixed(7,dis_para/10);
-//		digital_tubefixed(8,dis_para%10);
-//	}
-//}
-
-//void read_environment_data(void)
-//{
-//    /* 温度 */
-//	DS18B20_convertT();
-//    tem = (unsigned int)(DS18B20_readT() + 0.5);
-
-//    /* 光敏 */
-//    light_adc = AD_read(0x41);   // AIN1
-//    if(light_adc >= 153) light_level = 1;
-//    else if(light_adc >= 102) light_level = 2;
-//    else if(light_adc >= 25) light_level = 3;
-//    else light_level = 4;
-//}
-
-//void read_sport_data(void)
-//{
-//    distance = superwave_getdistance();
-//}
-
-//void key_proc(void)
-//{
-//    key = keynumber_nb();   // 非阻塞按键
-//    if(key == 0) return;
-
-//    /* S4：切界面
-//       你原矩阵里 S4 很可能返回 4
-//    */
-//    if(key == 4)
-//    {
-//        page++;
-//        if(page >= 3) page = 0;
-//    }
-
-//    /* 参数界面才处理下面这些 */
-//    if(page == 2)
-//    {
-//        /* S5：切PC/PL，按你原代码假设返回5 */
-//        if(key == 5)
-//        {
-//            para_page++;
-//            if(para_page >= 2) para_page = 0;
-//        }
-
-//        /* S8：加，按你原代码假设返回8 */
-//        if(key == 8)
-//        {
-//            if(para_page == 0)
-//            {
-//                if(tem_para < 80) tem_para++;
-//            }
-//            else
-//            {
-//                if(dis_para < 80) dis_para += 5;
-//            }
-//        }
-
-//        /* S9：减，按你原代码假设返回9 */
-//        if(key == 9)
-//        {
-//            if(para_page == 0)
-//            {
-//                if(tem_para > 20) tem_para--;
-//            }
-//            else
-//            {
-//                if(dis_para > 20) dis_para -= 5;
-//            }
-//        }
-//    }
-//}
-
-//void Timer0_Isr(void) interrupt 1
-//{
-//	TL0 = 0x18;				//设置定时初始值
-//	TH0 = 0xFC;				//设置定时初始值
-//	ms++;
-//}
-
-//void Timer0_Init(void)		//1毫秒@12.000MHz
-//{
-//	AUXR &= 0x7F;			//定时器时钟12T模式
-//	TMOD &= 0xF0;			//设置定时器模式
-//	TMOD |= 0x01;			//设置定时器模式
-//	TL0 = 0x18;				//设置定时初始值
-//	TH0 = 0xFC;				//设置定时初始值
-//	TF0 = 0;				//清除TF0标志
-//	TR0 = 1;				//定时器0开始计时
-//	ET0 = 1;				//使能定时器0中断
-//	EA=1;
-//}
-
-//void main(void)
-//{
-//    unsigned int last_key_ms = 0;
-//    unsigned int last_env_ms = 0;
-//    unsigned int last_sport_ms = 0;
-
-//    init();
-//    Timer0_Init();
-//	DS18B20_convertT();
-//    delay(750);
-
-//    read_environment_data();
-//    read_sport_data();
-
-//    while(1)
-//    {
-//        /* 1. 一直显示，不能停 */
-//        if(page == 0)
-//            environment_display();
-//        else if(page == 1)
-//            sport_display();
-//        else if(page == 2)
-//            parameter_display();
-
-//        /* 2. 每10ms扫描一次按键 */
-//        if(ms - last_key_ms >= 10)
-//        {
-//            last_key_ms = ms;
-//            key_proc();
-//        }
-
-//        /* 3. 环境数据定时采集 */
-//        if(ms - last_env_ms >= 1000)
-//        {
-//            last_env_ms = ms;
-//            read_environment_data();
-//        }
-
-//        /* 4. 距离数据定时采集 */
-//        if(ms - last_sport_ms >= 200)
-//        {
-//            last_sport_ms = ms;
-//            read_sport_data();
-//        }
-//    }
-//}
 
 
