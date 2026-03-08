@@ -293,43 +293,37 @@ void output_update(void)
 /* 用于统计界面 S8+S9 长按2秒清零 */
 bit key_down_raw(unsigned char key_id)
 {
-    unsigned char key = 0;
-
     P44=1;P42=1;P35=1;P34=1;
     P30=1;P31=1;P32=1;P33=1;
     P44=0;
-    if(P30==0) key=7;
-    else if(P31==0) key=6;
-    else if(P32==0) key=5;
-    else if(P33==0) key=4;
-    if(key == key_id) return 1;
+    if((P30==0) && (key_id==7)) return 1;
+    if((P31==0) && (key_id==6)) return 1;
+    if((P32==0) && (key_id==5)) return 1;
+    if((P33==0) && (key_id==4)) return 1;
 
     P44=1;P42=1;P35=1;P34=1;
     P30=1;P31=1;P32=1;P33=1;
     P42=0;
-    if(P30==0) key=11;
-    else if(P31==0) key=10;
-    else if(P32==0) key=9;
-    else if(P33==0) key=8;
-    if(key == key_id) return 1;
+    if((P30==0) && (key_id==11)) return 1;
+    if((P31==0) && (key_id==10)) return 1;
+    if((P32==0) && (key_id==9)) return 1;
+    if((P33==0) && (key_id==8)) return 1;
 
     P44=1;P42=1;P35=1;P34=1;
     P30=1;P31=1;P32=1;P33=1;
     P35=0;
-    if(P30==0) key=15;
-    else if(P31==0) key=14;
-    else if(P32==0) key=13;
-    else if(P33==0) key=12;
-    if(key == key_id) return 1;
+    if((P30==0) && (key_id==15)) return 1;
+    if((P31==0) && (key_id==14)) return 1;
+    if((P32==0) && (key_id==13)) return 1;
+    if((P33==0) && (key_id==12)) return 1;
 
     P44=1;P42=1;P35=1;P34=1;
     P30=1;P31=1;P32=1;P33=1;
     P34=0;
-    if(P30==0) key=19;
-    else if(P31==0) key=18;
-    else if(P32==0) key=17;
-    else if(P33==0) key=16;
-    if(key == key_id) return 1;
+    if((P30==0) && (key_id==19)) return 1;
+    if((P31==0) && (key_id==18)) return 1;
+    if((P32==0) && (key_id==17)) return 1;
+    if((P33==0) && (key_id==16)) return 1;
 
     return 0;
 }
