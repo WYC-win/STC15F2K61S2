@@ -28,9 +28,9 @@ unsigned char superwave_getdistance()
 		Delay12us();
 	}
 	CR=1;
-	while((RX==1)&&(CH<0x40));
+	while(RX && !CF);
 	CR=0;
-	if(CH>=0x40)
+	if(CF)
 	{
 		CF=0;
 		return 0;
@@ -38,7 +38,7 @@ unsigned char superwave_getdistance()
 	else
 	{
 		time_dis=(CH<<8)|CL;
-		return (time_dis*0.0172);
+		return (time_dis*0.017);
 	}
 
 }

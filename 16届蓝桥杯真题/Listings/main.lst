@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -62,7 +62,7 @@ line level    source
   52          #define PARA_PC    0
   53          #define PARA_PL    1
   54          
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 2   
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 2   
 
   55          #define MOVE_STOP  1
   56          #define MOVE_WALK  2
@@ -74,7 +74,7 @@ line level    source
   62          
   63          unsigned int  tem = 30;             /* 当前温度 */
   64          unsigned int  distance = 0;         /* 当前距离 */
-  65          unsigned int  last_distance = 0;    /* 上一次距离 */
+  65          unsigned int  move_ref_distance = 0;/* 运动状态比较基准距离(秒级) */
   66          
   67          unsigned char light_adc = 0;        /* 光敏ADC原始值 */
   68          unsigned char light_level = 1;      /* 光强等级 1~4 */
@@ -91,443 +91,484 @@ line level    source
   79          bit output_lock = 0;                /* 参数界面锁输出 */
   80          unsigned char led_keep = 0x00;
   81          unsigned char y5_keep  = 0x00;
-  82          
-  83          bit relay_last = 0;
+  82          unsigned char lock_led_base = 0x00;
+  83          unsigned char lock_move_state = MOVE_STOP;
   84          
-  85          volatile unsigned int ms = 0;
-  86          unsigned int move_lock_ms = 0;
-  87          unsigned int blink_ms = 0;
-  88          bit blink_flag = 0;
-  89          
-  90          unsigned int combo_hold_ms = 0;
+  85          bit relay_last = 0;
+  86          
+  87          volatile unsigned int ms = 0;
+  88          unsigned int move_lock_ms = 0;
+  89          unsigned int blink_ms = 0;
+  90          bit blink_flag = 0;
   91          
-  92          /* ====================== 锁存输出函数 ====================== */
-  93          void latch_write(unsigned char dat, unsigned char sel)
-  94          {
-  95   1          P0 = dat;
-  96   1          P2 = (P2 & 0x1F) | sel;
-  97   1          P2 &= 0x1F;       //取消选通
-  98   1      }
-  99          
- 100          /* LED 低电平点亮 */
- 101          void led_write(unsigned char led_on)
- 102          {
- 103   1          latch_write(~led_on, LATCH_Y4C);
- 104   1      }
- 105          
- 106          /* Y5C 高电平有效 */
- 107          void y5_write(unsigned char y5_on)
- 108          {
- 109   1          latch_write(y5_on, LATCH_Y5C);
- 110   1      }
- 111          
- 112          /* ====================== 定时器0 1ms ====================== */
- 113          void Timer0_Init(void)      /* 1ms @ 12.000MHz, 12T */
- 114          {
- 115   1          AUXR &= 0x7F;
- 116   1          TMOD &= 0xF0;
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 3   
+  92          unsigned int combo_hold_ms = 0;
+  93          
+  94          /* ====================== 锁存输出函数 ====================== */
+  95          void latch_write(unsigned char dat, unsigned char sel)
+  96          {
+  97   1          P0 = dat;
+  98   1          P2 = (P2 & 0x1F) | sel;
+  99   1          P2 &= 0x1F;       //取消选通
+ 100   1      }
+ 101          
+ 102          /* LED 低电平点亮 */
+ 103          void led_write(unsigned char led_on)
+ 104          {
+ 105   1          latch_write(~led_on, LATCH_Y4C);
+ 106   1      }
+ 107          
+ 108          /* Y5C 高电平有效 */
+ 109          void y5_write(unsigned char y5_on)
+ 110          {
+ 111   1          latch_write(y5_on, LATCH_Y5C);
+ 112   1      }
+ 113          
+ 114          /* ====================== 定时器0 1ms ====================== */
+ 115          void Timer0_Init(void)      /* 1ms @ 12.000MHz, 12T */
+ 116          {
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 3   
 
- 117   1          TMOD |= 0x01;
- 118   1          TL0 = 0x18;
- 119   1          TH0 = 0xFC;
- 120   1          TF0 = 0;
- 121   1          ET0 = 1;
- 122   1          EA  = 1;
- 123   1          TR0 = 1;
- 124   1      }
- 125          
- 126          void Timer0_Isr(void) interrupt 1
- 127          {
- 128   1          TL0 = 0x18;
- 129   1          TH0 = 0xFC;
- 130   1          ms++;
- 131   1      
- 132   1          if(move_lock_ms > 0) move_lock_ms--;
- 133   1          if(blink_ms > 0) blink_ms--;
- 134   1      }
- 135          
- 136          /* ====================== 界面显示 ====================== */
- 137          void environment_display(void)
- 138          {
- 139   1          digital_tubefixed(1, 12);              /* C */
- 140   1          digital_tubefixed(2, tem % 100 / 10);
- 141   1          digital_tubefixed(3, tem % 10);
- 142   1          digital_tube(7, 0xC8);                 /* n */
- 143   1          digital_tubefixed(8, light_level);
- 144   1      }
- 145          
- 146          void move_display(void)
- 147          {
- 148   1          digital_tube(1, 0xC7);                 /* L */
- 149   1          digital_tubefixed(2, move_state);
- 150   1          digital_tubefixed(6, distance / 100);
- 151   1          digital_tubefixed(7, distance % 100 / 10);
- 152   1          digital_tubefixed(8, distance % 10);
- 153   1      }
- 154          
- 155          void parameter_display(void)
- 156          {
- 157   1          digital_tube(1, 0x8C);                 /* P */
- 158   1      
- 159   1          if(para_page == PARA_PC)
- 160   1          {
- 161   2              digital_tubefixed(2, 12);          /* C */
- 162   2              digital_tubefixed(7, tem_para / 10);
- 163   2              digital_tubefixed(8, tem_para % 10);
- 164   2          }
- 165   1          else
- 166   1          {
- 167   2              digital_tube(2, 0xC7);             /* L */
- 168   2              digital_tubefixed(7, dis_para / 10);
- 169   2              digital_tubefixed(8, dis_para % 10);
- 170   2          }
- 171   1      }
- 172          
- 173          void stat_display(void)
- 174          {
- 175   1          digital_tube(1, 0xC8);                 /* n */
- 176   1          digital_tubefixed(2, 12);              /* C */
- 177   1          digital_tubefixed(5, relay_count / 1000 % 10);
- 178   1          digital_tubefixed(6, relay_count / 100 % 10);
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 4   
+ 117   1          AUXR &= 0x7F;
+ 118   1          TMOD &= 0xF0;
+ 119   1          TMOD |= 0x01;
+ 120   1          TL0 = 0x18;
+ 121   1          TH0 = 0xFC;
+ 122   1          TF0 = 0;
+ 123   1          ET0 = 1;
+ 124   1          EA  = 1;
+ 125   1          TR0 = 1;
+ 126   1      }
+ 127          
+ 128          void Timer0_Isr(void) interrupt 1
+ 129          {
+ 130   1          TL0 = 0x18;
+ 131   1          TH0 = 0xFC;
+ 132   1          ms++;
+ 133   1      
+ 134   1          if(move_lock_ms > 0) move_lock_ms--;
+ 135   1          if(blink_ms > 0) blink_ms--;
+ 136   1      }
+ 137          
+ 138          /* ====================== 界面显示 ====================== */
+ 139          void environment_display(void)
+ 140          {
+ 141   1          digital_tubefixed(1, 12);              /* C */
+ 142   1          digital_tubefixed(2, tem % 100 / 10);
+ 143   1          digital_tubefixed(3, tem % 10);
+ 144   1          digital_tube(7, 0xC8);                 /* n */
+ 145   1          digital_tubefixed(8, light_level);
+ 146   1      }
+ 147          
+ 148          void move_display(void)
+ 149          {
+ 150   1          digital_tube(1, 0xC7);                 /* L */
+ 151   1          digital_tubefixed(2, move_state);
+ 152   1          digital_tubefixed(6, distance / 100);
+ 153   1          digital_tubefixed(7, distance % 100 / 10);
+ 154   1          digital_tubefixed(8, distance % 10);
+ 155   1      }
+ 156          
+ 157          void parameter_display(void)
+ 158          {
+ 159   1          digital_tube(1, 0x8C);                 /* P */
+ 160   1      
+ 161   1          if(para_page == PARA_PC)
+ 162   1          {
+ 163   2              digital_tubefixed(2, 12);          /* C */
+ 164   2              digital_tubefixed(7, tem_para / 10);
+ 165   2              digital_tubefixed(8, tem_para % 10);
+ 166   2          }
+ 167   1          else
+ 168   1          {
+ 169   2              digital_tube(2, 0xC7);             /* L */
+ 170   2              digital_tubefixed(7, dis_para / 10);
+ 171   2              digital_tubefixed(8, dis_para % 10);
+ 172   2          }
+ 173   1      }
+ 174          
+ 175          void stat_display(void)
+ 176          {
+ 177   1          unsigned int n;
+ 178   1      
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 4   
 
- 179   1          digital_tubefixed(7, relay_count / 10 % 10);
- 180   1          digital_tubefixed(8, relay_count % 10);
- 181   1      }
- 182          
- 183          /* ====================== 数据采集 ====================== */
- 184          void read_temp_data(void)
- 185          {
- 186   1          DS18B20_convertT();
- 187   1          tem = (unsigned int)(DS18B20_readT() + 0.5);//四舍五入
- 188   1      }
- 189          
- 190          void read_light_data(void)
- 191          {
- 192   1          /* AIN1 */
- 193   1          light_adc = AD_read(0x41);
- 194   1      
- 195   1          if(light_adc >= 153) light_level = 1;
- 196   1          else if(light_adc >= 102) light_level = 2;
- 197   1          else if(light_adc >= 25) light_level = 3;
- 198   1          else light_level = 4;
- 199   1      }
- 200          
- 201          void read_distance_data(void)
- 202          {
- 203   1          last_distance = distance;
- 204   1          distance = superwave_getdistance();
- 205   1      }
- 206          
- 207          /* ====================== 状态判断 ====================== */
- 208          void judge_state(void)
- 209          {
- 210   1          if((distance > 0) && (distance < dis_para)) near_flag = 1;
- 211   1          else near_flag = 0;
- 212   1      
- 213   1          if(tem > tem_para) hot_flag = 1;
- 214   1          else hot_flag = 0;
- 215   1      }
- 216          
- 217          void update_move_state(void)
- 218          {
- 219   1          unsigned int delta;
- 220   1      
- 221   1          if(distance >= last_distance) delta = distance - last_distance;
- 222   1          else delta = last_distance - distance;
+ 179   1          digital_tube(1, 0xC8);                 /* n */
+ 180   1          digital_tubefixed(2, 12);              /* C */
+ 181   1      
+ 182   1          n = relay_count;
+ 183   1          if(n >= 1000) digital_tubefixed(5, n / 1000 % 10);
+ 184   1          else digital_tube(5, 0xFF);
+ 185   1      
+ 186   1          if(n >= 100) digital_tubefixed(6, n / 100 % 10);
+ 187   1          else digital_tube(6, 0xFF);
+ 188   1      
+ 189   1          if(n >= 10) digital_tubefixed(7, n / 10 % 10);
+ 190   1          else digital_tube(7, 0xFF);
+ 191   1      
+ 192   1          digital_tubefixed(8, n % 10);
+ 193   1      }
+ 194          
+ 195          /* ====================== 数据采集 ====================== */
+ 196          void read_temp_data(void)
+ 197          {
+ 198   1          tem = (unsigned int)(DS18B20_readT() + 0.5);/* 先读上一次转换结果 */
+ 199   1          DS18B20_convertT();                         /* 再启动下一次转换 */
+ 200   1      }
+ 201          
+ 202          void read_light_data(void)
+ 203          {
+ 204   1          /* AIN1 */
+ 205   1          light_adc = AD_read(0x41);
+ 206   1      
+ 207   1          if(light_adc >= 153) light_level = 1;
+ 208   1          else if(light_adc >= 102) light_level = 2;
+ 209   1          else if(light_adc >= 25) light_level = 3;
+ 210   1          else light_level = 4;
+ 211   1      }
+ 212          
+ 213          void read_distance_data(void)
+ 214          {
+ 215   1          distance = superwave_getdistance();
+ 216   1      }
+ 217          
+ 218          /* ====================== 状态判断 ====================== */
+ 219          void judge_state(void)
+ 220          {
+ 221   1          if((distance > 0) && (distance < dis_para)) near_flag = 1;
+ 222   1          else near_flag = 0;
  223   1      
- 224   1          if(move_lock_ms != 0) return;//return 直接退出
- 225   1      
- 226   1          if(delta < 5) move_state = MOVE_STOP;
- 227   1          else if(delta < 10) move_state = MOVE_WALK;
- 228   1          else move_state = MOVE_RUN;
- 229   1      
- 230   1          move_lock_ms = 3000;    /* 锁定3秒 */
- 231   1      }
- 232          
- 233          /* ====================== 输出控制 ====================== */
- 234          void output_update(void)
- 235          {
- 236   1          unsigned char led_on = 0x00;
- 237   1          unsigned char y5_on  = 0x00;
- 238   1          bit relay_now;
- 239   1      
- 240   1          if(output_lock)
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 5   
+ 224   1          if(tem > tem_para) hot_flag = 1;
+ 225   1          else hot_flag = 0;
+ 226   1      }
+ 227          
+ 228          void update_move_state(void)
+ 229          {
+ 230   1          unsigned int delta;
+ 231   1          unsigned char new_state;
+ 232   1      
+ 233   1          if(distance >= move_ref_distance) delta = distance - move_ref_distance;
+ 234   1          else delta = move_ref_distance - distance;
+ 235   1      
+ 236   1          if(move_lock_ms != 0)
+ 237   1          {
+ 238   2              move_ref_distance = distance;
+ 239   2              return;
+ 240   2          }
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 5   
 
- 241   1          {
- 242   2              led_write(led_keep);
- 243   2              y5_write(y5_keep);
- 244   2              return;
- 245   2          }
- 246   1      
- 247   1          /* 接近时，L1~L4 显示光强等级 */
- 248   1          if(near_flag)
- 249   1          {
- 250   2              if(light_level == 1) led_on |= LED1;
- 251   2              else if(light_level == 2) led_on |= (LED1 | LED2);
- 252   2              else if(light_level == 3) led_on |= (LED1 | LED2 | LED3);
- 253   2              else led_on |= (LED1 | LED2 | LED3 | LED4);
- 254   2          }
- 255   1      
- 256   1          /* L8 显示运动状态 */
- 257   1          if(move_state == MOVE_WALK)
- 258   1          {
- 259   2              led_on |= LED8;
- 260   2          }
- 261   1          else if(move_state == MOVE_RUN)
- 262   1          {
- 263   2              if(blink_ms == 0)
- 264   2              {
- 265   3                  blink_ms = 100;       /* 100ms 翻转一次 */
- 266   3                  blink_flag = !blink_flag;
- 267   3              }
- 268   2              if(blink_flag) led_on |= LED8;
- 269   2          }
- 270   1      
- 271   1          /* 接近 + 高温 -> 吸合继电器 */
- 272   1          if(near_flag && hot_flag)
- 273   1          {
- 274   2              y5_on |= RELAY_BIT;
- 275   2          }
- 276   1      
- 277   1          /* 继电器吸合次数统计：上升沿计数 */
- 278   1          relay_now = (y5_on & RELAY_BIT) ? 1 : 0;  //(y5_on & RELAY_BIT)为真则为1，否则为0
- 279   1          if(relay_now && !relay_last)
- 280   1          {
- 281   2              relay_count++;
- 282   2          }
- 283   1          relay_last = relay_now;
+ 241   1      
+ 242   1          if(delta < 5) new_state = MOVE_STOP;
+ 243   1          else if(delta < 10) new_state = MOVE_WALK;
+ 244   1          else new_state = MOVE_RUN;
+ 245   1      
+ 246   1          if(new_state != move_state)
+ 247   1          {
+ 248   2              move_state = new_state;
+ 249   2              move_lock_ms = 4000;    /* 官方逻辑是状态变化后约4秒锁定 */
+ 250   2          }
+ 251   1      
+ 252   1          move_ref_distance = distance;
+ 253   1      }
+ 254          
+ 255          /* ====================== 输出控制 ====================== */
+ 256          void output_update(void)
+ 257          {
+ 258   1          unsigned char led_on = 0x00;
+ 259   1          unsigned char y5_on  = 0x00;
+ 260   1          bit relay_now;
+ 261   1      
+ 262   1          if(output_lock)
+ 263   1          {
+ 264   2              led_on = lock_led_base;
+ 265   2      
+ 266   2              if(lock_move_state == MOVE_WALK)
+ 267   2              {
+ 268   3                  led_on |= LED8;
+ 269   3              }
+ 270   2              else if(lock_move_state == MOVE_RUN)
+ 271   2              {
+ 272   3                  if(blink_ms == 0)
+ 273   3                  {
+ 274   4                      blink_ms = 100;
+ 275   4                      blink_flag = !blink_flag;
+ 276   4                  }
+ 277   3                  if(blink_flag) led_on |= LED8;
+ 278   3              }
+ 279   2      
+ 280   2              led_write(led_on);
+ 281   2              y5_write(y5_keep);
+ 282   2              return;
+ 283   2          }
  284   1      
- 285   1          led_write(led_on);
- 286   1          y5_write(y5_on);
- 287   1      
- 288   1          led_keep = led_on;
- 289   1          y5_keep  = y5_on;
- 290   1      }
- 291          
- 292          /* ====================== 组合键原始电平读取 ====================== */
- 293          /* 用于统计界面 S8+S9 长按2秒清零 */
- 294          bit key_down_raw(unsigned char key_id)
- 295          {
- 296   1          P44=1;P42=1;P35=1;P34=1;
- 297   1          P30=1;P31=1;P32=1;P33=1;
- 298   1          P44=0;
- 299   1          if((P30==0) && (key_id==7)) return 1;
- 300   1          if((P31==0) && (key_id==6)) return 1;
- 301   1          if((P32==0) && (key_id==5)) return 1;
- 302   1          if((P33==0) && (key_id==4)) return 1;
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 6   
+ 285   1          /* 接近时，L1~L4 显示光强等级 */
+ 286   1          if(near_flag)
+ 287   1          {
+ 288   2              if(light_level == 1) led_on |= LED1;
+ 289   2              else if(light_level == 2) led_on |= (LED1 | LED2);
+ 290   2              else if(light_level == 3) led_on |= (LED1 | LED2 | LED3);
+ 291   2              else led_on |= (LED1 | LED2 | LED3 | LED4);
+ 292   2          }
+ 293   1      
+ 294   1          /* L8 显示运动状态 */
+ 295   1          if(move_state == MOVE_WALK)
+ 296   1          {
+ 297   2              led_on |= LED8;
+ 298   2          }
+ 299   1          else if(move_state == MOVE_RUN)
+ 300   1          {
+ 301   2              if(blink_ms == 0)
+ 302   2              {
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 6   
 
- 303   1      
- 304   1          P44=1;P42=1;P35=1;P34=1;
- 305   1          P30=1;P31=1;P32=1;P33=1;
- 306   1          P42=0;
- 307   1          if((P30==0) && (key_id==11)) return 1;
- 308   1          if((P31==0) && (key_id==10)) return 1;
- 309   1          if((P32==0) && (key_id==9)) return 1;
- 310   1          if((P33==0) && (key_id==8)) return 1;
- 311   1      
- 312   1          P44=1;P42=1;P35=1;P34=1;
- 313   1          P30=1;P31=1;P32=1;P33=1;
- 314   1          P35=0;
- 315   1          if((P30==0) && (key_id==15)) return 1;
- 316   1          if((P31==0) && (key_id==14)) return 1;
- 317   1          if((P32==0) && (key_id==13)) return 1;
- 318   1          if((P33==0) && (key_id==12)) return 1;
- 319   1      
- 320   1          P44=1;P42=1;P35=1;P34=1;
- 321   1          P30=1;P31=1;P32=1;P33=1;
- 322   1          P34=0;
- 323   1          if((P30==0) && (key_id==19)) return 1;
- 324   1          if((P31==0) && (key_id==18)) return 1;
- 325   1          if((P32==0) && (key_id==17)) return 1;
- 326   1          if((P33==0) && (key_id==16)) return 1;
- 327   1      
- 328   1          return 0;
- 329   1      }
- 330          
- 331          /* ====================== 按键处理 ====================== */
- 332          void key_proc(void)
+ 303   3                  blink_ms = 100;       /* 100ms 翻转一次 */
+ 304   3                  blink_flag = !blink_flag;
+ 305   3              }
+ 306   2              if(blink_flag) led_on |= LED8;
+ 307   2          }
+ 308   1      
+ 309   1          /* 接近 + 高温 -> 吸合继电器 */
+ 310   1          if(near_flag && hot_flag)
+ 311   1          {
+ 312   2              y5_on |= RELAY_BIT;
+ 313   2          }
+ 314   1      
+ 315   1          /* 继电器吸合次数统计：上升沿计数 */
+ 316   1          relay_now = (y5_on & RELAY_BIT) ? 1 : 0;  //(y5_on & RELAY_BIT)为真则为1，否则为0
+ 317   1          if(relay_now && !relay_last)
+ 318   1          {
+ 319   2              relay_count++;
+ 320   2          }
+ 321   1          relay_last = relay_now;
+ 322   1      
+ 323   1          led_write(led_on);
+ 324   1          y5_write(y5_on);
+ 325   1      
+ 326   1          led_keep = led_on;
+ 327   1          y5_keep  = y5_on;
+ 328   1      }
+ 329          
+ 330          /* ====================== 组合键原始电平读取 ====================== */
+ 331          /* 用于统计界面 S8+S9 长按2秒清零 */
+ 332          bit key_down_raw(unsigned char key_id)
  333          {
- 334   1          unsigned char key;
- 335   1      
- 336   1          key = keynumber_nb();
- 337   1          if(key == 0) return;
- 338   1      
- 339   1          /* S4 切界面 */
- 340   1          if(key == KEY_S4)
- 341   1          {
- 342   2              page++;
- 343   2              if(page >= 4) page = 0;
- 344   2      
- 345   2              if(page == PAGE_PARA)
- 346   2              {
- 347   3                  para_page = PARA_PC;
- 348   3                  output_lock = 1;
- 349   3              }
- 350   2              else
- 351   2              {
- 352   3                  output_lock = 0;
- 353   3              }
- 354   2          }
- 355   1      
- 356   1          /* 参数界面按键 */
- 357   1          if(page == PAGE_PARA)
- 358   1          {
- 359   2              if(key == KEY_S5)
- 360   2              {
- 361   3                  para_page++;
- 362   3                  if(para_page >= 2) para_page = 0;
- 363   3              }
- 364   2      
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 7   
+ 334   1          P44=1;P42=1;P35=1;P34=1;
+ 335   1          P30=1;P31=1;P32=1;P33=1;
+ 336   1          P44=0;
+ 337   1          if((P30==0) && (key_id==7)) return 1;
+ 338   1          if((P31==0) && (key_id==6)) return 1;
+ 339   1          if((P32==0) && (key_id==5)) return 1;
+ 340   1          if((P33==0) && (key_id==4)) return 1;
+ 341   1      
+ 342   1          P44=1;P42=1;P35=1;P34=1;
+ 343   1          P30=1;P31=1;P32=1;P33=1;
+ 344   1          P42=0;
+ 345   1          if((P30==0) && (key_id==11)) return 1;
+ 346   1          if((P31==0) && (key_id==10)) return 1;
+ 347   1          if((P32==0) && (key_id==9)) return 1;
+ 348   1          if((P33==0) && (key_id==8)) return 1;
+ 349   1      
+ 350   1          P44=1;P42=1;P35=1;P34=1;
+ 351   1          P30=1;P31=1;P32=1;P33=1;
+ 352   1          P35=0;
+ 353   1          if((P30==0) && (key_id==15)) return 1;
+ 354   1          if((P31==0) && (key_id==14)) return 1;
+ 355   1          if((P32==0) && (key_id==13)) return 1;
+ 356   1          if((P33==0) && (key_id==12)) return 1;
+ 357   1      
+ 358   1          P44=1;P42=1;P35=1;P34=1;
+ 359   1          P30=1;P31=1;P32=1;P33=1;
+ 360   1          P34=0;
+ 361   1          if((P30==0) && (key_id==19)) return 1;
+ 362   1          if((P31==0) && (key_id==18)) return 1;
+ 363   1          if((P32==0) && (key_id==17)) return 1;
+ 364   1          if((P33==0) && (key_id==16)) return 1;
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 7   
 
- 365   2              if(key == KEY_S8)
- 366   2              {
- 367   3                  if(para_page == PARA_PC)
- 368   3                  {
- 369   4                      if(tem_para < 80) tem_para++;
- 370   4                  }
- 371   3                  else
- 372   3                  {
- 373   4                      if(dis_para <= 75) dis_para += 5;
- 374   4                  }
- 375   3              }
- 376   2      
- 377   2              if(key == KEY_S9)
- 378   2              {
- 379   3                  if(para_page == PARA_PC)
- 380   3                  {
- 381   4                      if(tem_para > 20) tem_para--;
- 382   4                  }
- 383   3                  else
- 384   3                  {
- 385   4                      if(dis_para >= 25) dis_para -= 5;
- 386   4                  }
- 387   3              }
- 388   2          }
- 389   1      }
- 390          
- 391          /* ====================== 主函数 ====================== */
- 392          void main(void)
- 393          {
- 394   1          unsigned int last_key_ms  = 0;//按键
- 395   1          unsigned int last_temp_ms = 0;//温度
- 396   1          unsigned int last_lux_ms  = 0;//光敏
- 397   1          unsigned int last_dis_ms  = 0;//距离
- 398   1          unsigned int last_mov_ms  = 0;//运动状态
- 399   1      
- 400   1          init();
- 401   1          Timer0_Init();
- 402   1      
- 403   1          /* 初始状态 */
- 404   1          page = PAGE_ENV;
- 405   1          para_page = PARA_PC;
- 406   1          tem_para = 30;
- 407   1          dis_para = 30;
- 408   1          relay_count = 0;
- 409   1          move_state = MOVE_STOP;
- 410   1          output_lock = 0;
- 411   1          led_write(0x00);
- 412   1          y5_write(0x00);
- 413   1      
- 414   1              DS18B20_convertT();
- 415   1          delay(750);
- 416   1              
- 417   1          read_temp_data();
- 418   1          read_light_data();
- 419   1          read_distance_data();
- 420   1      
- 421   1          while(1)
- 422   1          {
- 423   2              /* 持续显示 */
- 424   2              if(page == PAGE_ENV) environment_display();
- 425   2              else if(page == PAGE_MOVE) move_display();
- 426   2              else if(page == PAGE_PARA) parameter_display();
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 8   
+ 365   1      
+ 366   1          return 0;
+ 367   1      }
+ 368          
+ 369          /* ====================== 按键处理 ====================== */
+ 370          void key_proc(void)
+ 371          {
+ 372   1          unsigned char key;
+ 373   1      
+ 374   1          key = keynumber_nb();
+ 375   1          if(key == 0) return;
+ 376   1      
+ 377   1          /* S4 切界面 */
+ 378   1          if(key == KEY_S4)
+ 379   1          {
+ 380   2              page++;
+ 381   2              if(page >= 4) page = 0;
+ 382   2      
+ 383   2              if(page == PAGE_PARA)
+ 384   2              {
+ 385   3                  para_page = PARA_PC;
+ 386   3                  output_lock = 1;
+ 387   3                  lock_led_base = led_keep & (unsigned char)(~LED8);
+ 388   3                  lock_move_state = move_state;
+ 389   3              }
+ 390   2              else
+ 391   2              {
+ 392   3                  output_lock = 0;
+ 393   3              }
+ 394   2          }
+ 395   1      
+ 396   1          /* 参数界面按键 */
+ 397   1          if(page == PAGE_PARA)
+ 398   1          {
+ 399   2              if(key == KEY_S5)
+ 400   2              {
+ 401   3                  para_page++;
+ 402   3                  if(para_page >= 2) para_page = 0;
+ 403   3              }
+ 404   2      
+ 405   2              if(key == KEY_S8)
+ 406   2              {
+ 407   3                  if(para_page == PARA_PC)
+ 408   3                  {
+ 409   4                      if(tem_para < 80) tem_para++;
+ 410   4                  }
+ 411   3                  else
+ 412   3                  {
+ 413   4                      if(dis_para <= 75) dis_para += 5;
+ 414   4                  }
+ 415   3              }
+ 416   2      
+ 417   2              if(key == KEY_S9)
+ 418   2              {
+ 419   3                  if(para_page == PARA_PC)
+ 420   3                  {
+ 421   4                      if(tem_para > 20) tem_para--;
+ 422   4                  }
+ 423   3                  else
+ 424   3                  {
+ 425   4                      if(dis_para >= 25) dis_para -= 5;
+ 426   4                  }
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 8   
 
- 427   2              else stat_display();
- 428   2      
- 429   2              /* 10ms 扫键 */
- 430   2              if(ms - last_key_ms >= 10)
- 431   2              {
- 432   3                  last_key_ms = ms;
- 433   3                  key_proc();
- 434   3              }
- 435   2      
- 436   2              /* 温度每1000ms采样一次 */
- 437   2              if(ms - last_temp_ms >= 1000)
- 438   2              {
- 439   3                  last_temp_ms = ms;
- 440   3                  read_temp_data();
- 441   3              }
- 442   2      
- 443   2              /* 光敏每100ms采样一次 */
- 444   2              if(ms - last_lux_ms >= 100)
- 445   2              {
- 446   3                  last_lux_ms = ms;
- 447   3                  read_light_data();
- 448   3              }
- 449   2      
- 450   2              /* 距离每200ms采样一次 */
- 451   2              if(ms - last_dis_ms >= 200)
- 452   2              {
- 453   3                  last_dis_ms = ms;
- 454   3                  read_distance_data();
- 455   3              }
- 456   2      
- 457   2              /* 运动状态每1000ms判断一次 */
- 458   2              if(ms - last_mov_ms >= 1000)
- 459   2              {
- 460   3                  last_mov_ms = ms;
- 461   3                  update_move_state();
- 462   3              }
- 463   2      
- 464   2              judge_state();
- 465   2              output_update();
- 466   2      
- 467   2              /* 统计界面：S8 + S9 长按2秒清零 */
- 468   2              if(page == PAGE_STAT)
- 469   2              {
- 470   3                  if(key_down_raw(KEY_S8) && key_down_raw(KEY_S9))
- 471   3                  {
- 472   4                      if(combo_hold_ms == 0)
- 473   4                      {
- 474   5                          combo_hold_ms = ms;   /* 记录组合键开始按下时刻 */
- 475   5                      }
- 476   4                      else if((unsigned int)(ms - combo_hold_ms) >= 2000)
- 477   4                      {
- 478   5                          relay_count = 0;
- 479   5                          combo_hold_ms = 0;
- 480   5                      }
- 481   4                  }
- 482   3                  else
- 483   3                  {
- 484   4                      combo_hold_ms = 0;
- 485   4                  }
- 486   3              }
- 487   2              else
- 488   2              {
-C51 COMPILER V9.57.0.0   MAIN                                                              03/08/2026 16:04:36 PAGE 9   
+ 427   3              }
+ 428   2          }
+ 429   1      }
+ 430          
+ 431          /* ====================== 主函数 ====================== */
+ 432          void main(void)
+ 433          {
+ 434   1          unsigned int last_key_ms  = 0;//按键
+ 435   1          unsigned int last_temp_ms = 0;//温度
+ 436   1          unsigned int last_lux_ms  = 0;//光敏
+ 437   1          unsigned int last_dis_ms  = 0;//距离
+ 438   1          unsigned int last_mov_ms  = 0;//运动状态
+ 439   1      
+ 440   1          init();
+ 441   1          Timer0_Init();
+ 442   1      
+ 443   1          /* 初始状态 */
+ 444   1          page = PAGE_ENV;
+ 445   1          para_page = PARA_PC;
+ 446   1          tem_para = 30;
+ 447   1          dis_para = 30;
+ 448   1          relay_count = 0;
+ 449   1          move_state = MOVE_STOP;
+ 450   1          output_lock = 0;
+ 451   1          led_write(0x00);
+ 452   1          y5_write(0x00);
+ 453   1      
+ 454   1              DS18B20_convertT();
+ 455   1          delay(750);
+ 456   1              
+ 457   1          read_temp_data();
+ 458   1          read_light_data();
+ 459   1          read_distance_data();
+ 460   1          move_ref_distance = distance;
+ 461   1      
+ 462   1          while(1)
+ 463   1          {
+ 464   2              /* 持续显示 */
+ 465   2              if(page == PAGE_ENV) environment_display();
+ 466   2              else if(page == PAGE_MOVE) move_display();
+ 467   2              else if(page == PAGE_PARA) parameter_display();
+ 468   2              else stat_display();
+ 469   2      
+ 470   2              /* 10ms 扫键 */
+ 471   2              if(ms - last_key_ms >= 10)
+ 472   2              {
+ 473   3                  last_key_ms = ms;
+ 474   3                  key_proc();
+ 475   3              }
+ 476   2      
+ 477   2              /* 温度每1000ms采样一次 */
+ 478   2              if(ms - last_temp_ms >= 1000)
+ 479   2              {
+ 480   3                  last_temp_ms = ms;
+ 481   3                  read_temp_data();
+ 482   3              }
+ 483   2      
+ 484   2              /* 光敏更快采样，避免场景切换时显示滞后 */
+ 485   2              if(ms - last_lux_ms >= 100)
+ 486   2              {
+ 487   3                  last_lux_ms = ms;
+ 488   3                  read_light_data();
+C51 COMPILER V9.57.0.0   MAIN                                                              03/15/2026 13:58:22 PAGE 9   
 
- 489   3                  combo_hold_ms = 0;
- 490   3              }
- 491   2          }
- 492   1      }
- 493          
- 494          
- 495          
- 496          
+ 489   3              }
+ 490   2      
+ 491   2              /* 距离更快采样，避免继电器判定滞后一拍 */
+ 492   2              if(ms - last_dis_ms >= 200)
+ 493   2              {
+ 494   3                  last_dis_ms = ms;
+ 495   3                  read_distance_data();
+ 496   3              }
+ 497   2      
+ 498   2              /* 运动状态每1000ms判断一次 */
+ 499   2              if(ms - last_mov_ms >= 1000)
+ 500   2              {
+ 501   3                  last_mov_ms = ms;
+ 502   3                  update_move_state();
+ 503   3              }
+ 504   2      
+ 505   2              judge_state();
+ 506   2              output_update();
+ 507   2      
+ 508   2              /* 统计界面：S8 + S9 长按2秒清零 */
+ 509   2              if(page == PAGE_STAT)
+ 510   2              {
+ 511   3                  if(key_down_raw(KEY_S8) && key_down_raw(KEY_S9))
+ 512   3                  {
+ 513   4                      if(combo_hold_ms == 0)
+ 514   4                      {
+ 515   5                          combo_hold_ms = ms;   /* 记录组合键开始按下时刻 */
+ 516   5                      }
+ 517   4                      else if((unsigned int)(ms - combo_hold_ms) >= 2000)
+ 518   4                      {
+ 519   5                          relay_count = 0;
+ 520   5                          combo_hold_ms = 0;
+ 521   5                      }
+ 522   4                  }
+ 523   3                  else
+ 524   3                  {
+ 525   4                      combo_hold_ms = 0;
+ 526   4                  }
+ 527   3              }
+ 528   2              else
+ 529   2              {
+ 530   3                  combo_hold_ms = 0;
+ 531   3              }
+ 532   2          }
+ 533   1      }
+ 534          
+ 535          
+ 536          
+ 537          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1421    ----
+   CODE SIZE        =   1540    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     25      10
+   DATA SIZE        =     27      12
    IDATA SIZE       =   ----    ----
    BIT SIZE         =      5       1
 END OF MODULE INFORMATION.

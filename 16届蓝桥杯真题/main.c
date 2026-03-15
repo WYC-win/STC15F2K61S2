@@ -62,7 +62,7 @@ unsigned char para_page = PARA_PC;
 
 unsigned int  tem = 30;             /* 当前温度 */
 unsigned int  distance = 0;         /* 当前距离 */
-unsigned int  last_distance = 0;    /* 上一次距离 */
+unsigned int  move_ref_distance = 0;/* 运动状态比较基准距离(秒级) */
 
 unsigned char light_adc = 0;        /* 光敏ADC原始值 */
 unsigned char light_level = 1;      /* 光强等级 1~4 */
@@ -79,6 +79,8 @@ bit hot_flag  = 0;                  /* 高温 */
 bit output_lock = 0;                /* 参数界面锁输出 */
 unsigned char led_keep = 0x00;
 unsigned char y5_keep  = 0x00;
+unsigned char lock_led_base = 0x00;
+unsigned char lock_move_state = MOVE_STOP;
 
 bit relay_last = 0;
 
@@ -172,19 +174,29 @@ void parameter_display(void)
 
 void stat_display(void)
 {
+    unsigned int n;
+
     digital_tube(1, 0xC8);                 /* n */
     digital_tubefixed(2, 12);              /* C */
-    digital_tubefixed(5, relay_count / 1000 % 10);
-    digital_tubefixed(6, relay_count / 100 % 10);
-    digital_tubefixed(7, relay_count / 10 % 10);
-    digital_tubefixed(8, relay_count % 10);
+
+    n = relay_count;
+    if(n >= 1000) digital_tubefixed(5, n / 1000 % 10);
+    else digital_tube(5, 0xFF);
+
+    if(n >= 100) digital_tubefixed(6, n / 100 % 10);
+    else digital_tube(6, 0xFF);
+
+    if(n >= 10) digital_tubefixed(7, n / 10 % 10);
+    else digital_tube(7, 0xFF);
+
+    digital_tubefixed(8, n % 10);
 }
 
 /* ====================== 数据采集 ====================== */
 void read_temp_data(void)
 {
-    DS18B20_convertT();
-    tem = (unsigned int)(DS18B20_readT() + 0.5);//四舍五入
+    tem = (unsigned int)(DS18B20_readT() + 0.5);/* 先读上一次转换结果 */
+    DS18B20_convertT();                         /* 再启动下一次转换 */
 }
 
 void read_light_data(void)
@@ -200,7 +212,6 @@ void read_light_data(void)
 
 void read_distance_data(void)
 {
-    last_distance = distance;
     distance = superwave_getdistance();
 }
 
@@ -217,17 +228,28 @@ void judge_state(void)
 void update_move_state(void)
 {
     unsigned int delta;
+    unsigned char new_state;
 
-    if(distance >= last_distance) delta = distance - last_distance;
-    else delta = last_distance - distance;
+    if(distance >= move_ref_distance) delta = distance - move_ref_distance;
+    else delta = move_ref_distance - distance;
 
-    if(move_lock_ms != 0) return;//return 直接退出
+    if(move_lock_ms != 0)
+    {
+        move_ref_distance = distance;
+        return;
+    }
 
-    if(delta < 5) move_state = MOVE_STOP;
-    else if(delta < 10) move_state = MOVE_WALK;
-    else move_state = MOVE_RUN;
+    if(delta < 5) new_state = MOVE_STOP;
+    else if(delta < 10) new_state = MOVE_WALK;
+    else new_state = MOVE_RUN;
 
-    move_lock_ms = 3000;    /* 锁定3秒 */
+    if(new_state != move_state)
+    {
+        move_state = new_state;
+        move_lock_ms = 4000;    /* 官方逻辑是状态变化后约4秒锁定 */
+    }
+
+    move_ref_distance = distance;
 }
 
 /* ====================== 输出控制 ====================== */
@@ -239,7 +261,23 @@ void output_update(void)
 
     if(output_lock)
     {
-        led_write(led_keep);
+        led_on = lock_led_base;
+
+        if(lock_move_state == MOVE_WALK)
+        {
+            led_on |= LED8;
+        }
+        else if(lock_move_state == MOVE_RUN)
+        {
+            if(blink_ms == 0)
+            {
+                blink_ms = 100;
+                blink_flag = !blink_flag;
+            }
+            if(blink_flag) led_on |= LED8;
+        }
+
+        led_write(led_on);
         y5_write(y5_keep);
         return;
     }
@@ -346,6 +384,8 @@ void key_proc(void)
         {
             para_page = PARA_PC;
             output_lock = 1;
+            lock_led_base = led_keep & (unsigned char)(~LED8);
+            lock_move_state = move_state;
         }
         else
         {
@@ -417,6 +457,7 @@ void main(void)
     read_temp_data();
     read_light_data();
     read_distance_data();
+    move_ref_distance = distance;
 
     while(1)
     {
@@ -440,14 +481,14 @@ void main(void)
             read_temp_data();
         }
 
-        /* 光敏每100ms采样一次 */
+        /* 光敏更快采样，避免场景切换时显示滞后 */
         if(ms - last_lux_ms >= 100)
         {
             last_lux_ms = ms;
             read_light_data();
         }
 
-        /* 距离每200ms采样一次 */
+        /* 距离更快采样，避免继电器判定滞后一拍 */
         if(ms - last_dis_ms >= 200)
         {
             last_dis_ms = ms;
