@@ -1,0 +1,11 @@
+#include <STC15F2K60S2.H>
+void init(void)
+{
+	P0=0xFF;
+	P2=(P2&0x01F)|0x80;
+	P2&=0x1F;
+	
+	P0=0x00;
+	P2=(P2&0x01F)|0xA0;
+	P2&=0x1F;
+}
