@@ -1,0 +1,33 @@
+C51 COMPILER V9.57.0.0   KBD                                                               03/23/2026 20:48:29 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE KBD
+OBJECT MODULE PLACED IN .\Objects\kbd.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE kbd.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\kbd.l
+                    -st) OBJECT(.\Objects\kbd.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          
+   3          //unsigned char kbd_number()
+   4          //{
+   5          ////    P3^0=1;P3^1=1;P3^2=1;P3^3=1;
+   6          ////    P4^4=1;P4^2=1;P3^5=1;P3^4=1;
+   7          ////    P4^4=0;
+   8          ////    
+   9          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

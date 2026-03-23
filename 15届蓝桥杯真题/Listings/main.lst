@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              03/22/2026 17:27:02 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              03/23/2026 20:48:28 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -12,59 +12,33 @@ line level    source
    2          #include "onewire.h"
    3          #include "iic.h"
    4          #include "ds1302.h"
-   5          #include "74hc38.h"
+   5          #include "latch.h"
    6          #include "init.h"
-*** WARNING C315 IN LINE 4 OF init.h: unknown #directive 'endeif'
-   7          
-   8          void Delay(unsigned int n)      //@12.000MHz
-   9          {
-  10   1              unsigned int i;
-  11   1              for(i=0;i<n;i++)
-  12   1              {
-  13   2                      unsigned char data i, j;
-  14   2      
-  15   2                      i = 12;
-  16   2                      j = 169;
-  17   2                      do
-  18   2                      {
-  19   3                      while (--j);
-  20   3                      } while (--i);
-  21   2              }
-  22   1              
-  23   1      }
-  24          
-  25          void main()
-  26          {
-  27   1              init();
-  28   1              while(1)
-  29   1              {
-  30   2                      latch(0x00,Y4C);
-  31   2                      Delay(500);
-  32   2                      latch(0x01,Y4C);
-  33   2                      Delay(500);
-  34   2                      latch(0x02,Y4C);
-  35   2                      Delay(500);
-  36   2                      latch(0x03,Y4C);
-  37   2                      Delay(500);
-  38   2                      latch(0x04,Y4C);
-  39   2                      Delay(500);
-  40   2                      latch(0x05,Y4C);
-  41   2              }
-  42   1      }
-*** WARNING C316 IN LINE 42 OF main.c: unterminated conditionals
+   7          #include "digitaltube.h"
+   8          unsigned char Y4C=0x80;
+   9          unsigned char Y5C=0xA0;
+  10          unsigned char Y6C=0xC0;
+  11          unsigned char Y7C=0xD0;
+  12          
+  13          void main()
+  14          {
+  15   1              init();
+  16   1              while(1)
+  17   1              {
+  18   2                      latch(0x00,Y4C);
+  19   2              }
+  20   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     96    ----
+   CODE SIZE        =     12    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =   ----       2
+   DATA SIZE        =      4    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
-C51 COMPILER V9.57.0.0   MAIN                                                              03/22/2026 17:27:02 PAGE 2   
-
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,10 +1,10 @@
-C51 COMPILER V9.57.0.0   74HC38                                                            03/23/2026 20:40:43 PAGE 1   
+C51 COMPILER V9.57.0.0   LATCH                                                             03/23/2026 20:48:29 PAGE 1   
 
 
-C51 COMPILER V9.57.0.0, COMPILATION OF MODULE 74HC38
-OBJECT MODULE PLACED IN .\Objects\74hc38.obj
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE 74hc38.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\74
-                    -hc38.lst) OBJECT(.\Objects\74hc38.obj)
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE LATCH
+OBJECT MODULE PLACED IN .\Objects\latch.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE latch.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\lat
+                    -ch.lst) OBJECT(.\Objects\latch.obj)
 
 line level    source
 

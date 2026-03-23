@@ -231,7 +231,7 @@
               <RCB>
                 <Type>0</Type>
                 <StartAddress>0x0</StartAddress>
-                <Size>0x10000</Size>
+                <Size>0xffff</Size>
               </RCB>
               <RXB>
                 <Type>0</Type>
@@ -400,16 +400,6 @@
               <FilePath>.\ds1302.h</FilePath>
             </File>
             <File>
-              <FileName>74hc38.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\74hc38.c</FilePath>
-            </File>
-            <File>
-              <FileName>74hc38.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\74hc38.h</FilePath>
-            </File>
-            <File>
               <FileName>init.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\init.c</FilePath>
@@ -418,6 +408,46 @@
               <FileName>init.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\init.h</FilePath>
+            </File>
+            <File>
+              <FileName>digitaltube.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\digitaltube.c</FilePath>
+            </File>
+            <File>
+              <FileName>digitaltube.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\digitaltube.h</FilePath>
+            </File>
+            <File>
+              <FileName>delay.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\delay.c</FilePath>
+            </File>
+            <File>
+              <FileName>delay.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\delay.h</FilePath>
+            </File>
+            <File>
+              <FileName>kbd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\kbd.c</FilePath>
+            </File>
+            <File>
+              <FileName>kbd.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\kbd.h</FilePath>
+            </File>
+            <File>
+              <FileName>latch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\latch.c</FilePath>
+            </File>
+            <File>
+              <FileName>latch.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\latch.h</FilePath>
             </File>
           </Files>
         </Group>

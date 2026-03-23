@@ -2,30 +2,19 @@
 #include "onewire.h"
 #include "iic.h"
 #include "ds1302.h"
-#include "74hc38.h"
+#include "latch.h"
 #include "init.h"
-
-void Delay(unsigned int n)	//@12.000MHz
-{
-	unsigned int i;
-	for(i=0;i<n;i++)
-	{
-		unsigned char data i, j;
-
-		i = 12;
-		j = 169;
-		do
-		{
-		while (--j);
-		} while (--i);
-	}
-	
-}
+#include "digitaltube.h"
+unsigned char Y4C=0x80;
+unsigned char Y5C=0xA0;
+unsigned char Y6C=0xC0;
+unsigned char Y7C=0xD0;
 
 void main()
 {
 	init();
 	while(1)
 	{
+		latch(0x00,Y4C);
 	}
 }
