@@ -10,6 +10,8 @@ sbit col4=P3^4;
 
 unsigned char kbd_number()
 {
+	static unsigned char last_key = 0;     // 上一次“稳定键值”
+    static unsigned char stable_cnt = 0;   // 稳定计数
 	unsigned char key_number=0;
 	
 	row1=1;row2=1;row3=1;row4=1;
@@ -46,5 +48,32 @@ unsigned char kbd_number()
 	else if(row3==0)key_number=17;
 	else if(row4==0)key_number=16;
 	
-	return key_number;
+	
+	if(key_number == last_key)
+    {
+        if(stable_cnt < 3) stable_cnt++; // 连续3次一致认为稳定（比如每10ms一次 → 30ms消抖）
+    }
+    else
+    {
+        stable_cnt = 0;
+        last_key = key_number;
+        return 0;
+    }
+
+    if(stable_cnt == 3)
+    {
+        // 稳定后只在“从0到非0”的瞬间返回一次
+        static unsigned char reported = 0;
+        if(last_key != 0 && reported == 0)
+        {
+            reported = 1;
+            return last_key;   // 产生一次“按下事件”
+        }
+        if(last_key == 0)
+        {
+            reported = 0;      // 松手后允许下一次按下事件
+        }
+    }
+
+    return 0;
 }
