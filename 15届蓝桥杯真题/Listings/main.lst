@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              03/26/2026 21:45:38 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              03/27/2026 10:49:37 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -25,7 +25,7 @@ line level    source
   15          #define page_para_p2 1
   16          
   17          #define page_back_freq 0
-  18          #define page_back_time 0
+  18          #define page_back_time 1
   19          
   20          
   21          
@@ -45,7 +45,7 @@ line level    source
   35          unsigned int freq_ex=2000;
   36          int freq_adjust=0;
   37          
-  38          unsigned char freq_max=0;
+  38          unsigned int freq_max=0;
   39          
   40          
   41          void page_freq_display()
@@ -62,7 +62,7 @@ line level    source
   52   3                              digitaltube_fixed(7,freq%100/10);
   53   3                              digitaltube_fixed(8,freq%10);
   54   3                      }
-C51 COMPILER V9.57.0.0   MAIN                                                              03/26/2026 21:45:38 PAGE 2   
+C51 COMPILER V9.57.0.0   MAIN                                                              03/27/2026 10:49:37 PAGE 2   
 
   55   2                      else if(freq/1000!=0)
   56   2                      {
@@ -95,25 +95,106 @@ line level    source
   83   1              
   84   1      }
   85          
-  86          
-  87          
-  88          
-  89          void main()
-  90          {
-  91   1              init();
-  92   1              while(1)
-  93   1              {
-  94   2                      page_freq_display();
-  95   2              }
-  96   1      }
+  86          void page_para_display()
+  87          {
+  88   1              digital_tube(1,0x8C);//P
+  89   1              if(page_para_count==0)
+  90   1              {
+  91   2                      digitaltube_fixed(2,1);
+  92   2                      digitaltube_fixed(5,freq_ex/1000);
+  93   2                      digitaltube_fixed(6,freq_ex%1000/100);
+  94   2                      digitaltube_fixed(7,freq_ex%100/10);
+  95   2                      digitaltube_fixed(8,freq_ex%10);
+  96   2              }
+  97   1              else
+  98   1              {
+  99   2                      digitaltube_fixed(2,2);
+ 100   2                      if(freq_adjust>0)
+ 101   2                      {
+ 102   3                                      digitaltube_fixed(6,freq_adjust/100);
+ 103   3                                      digitaltube_fixed(7,freq_adjust%100/10);
+ 104   3                                      digitaltube_fixed(8,freq_adjust%10);
+ 105   3                              
+ 106   3                      }
+ 107   2                      else if(freq_adjust<0)
+ 108   2                      {
+ 109   3                              int tem_dat;
+ 110   3                              tem_dat=0-freq_adjust;
+ 111   3                              digital_tube(5,0xBF);//-
+ 112   3                              digitaltube_fixed(6,tem_dat/100);
+ 113   3                              digitaltube_fixed(7,tem_dat%100/10);
+ 114   3                              digitaltube_fixed(8,tem_dat%10);
+ 115   3                      }
+ 116   2                      else
+C51 COMPILER V9.57.0.0   MAIN                                                              03/27/2026 10:49:37 PAGE 3   
+
+ 117   2                      {
+ 118   3                              digitaltube_fixed(8,freq_adjust);
+ 119   3                      }
+ 120   2      
+ 121   2              }
+ 122   1      }
+ 123          
+ 124          
+ 125          void page_back_display()
+ 126          {
+ 127   1              digital_tube(1,0x89);//H
+ 128   1              if(page_back_count==0)
+ 129   1              {
+ 130   2                      digitaltube_fixed(2,15);
+ 131   2                      if(freq_max/10000!=0)
+ 132   2                      {
+ 133   3                              digitaltube_fixed(4,freq_max/10000);
+ 134   3                              digitaltube_fixed(5,freq_max%10000/1000);
+ 135   3                              digitaltube_fixed(6,freq_max%1000/100);
+ 136   3                              digitaltube_fixed(7,freq_max%100/10);
+ 137   3                              digitaltube_fixed(8,freq_max%10);
+ 138   3                      }
+ 139   2                      else if(freq_max/1000!=0)
+ 140   2                      {
+ 141   3                              digitaltube_fixed(5,freq_max/1000);
+ 142   3                              digitaltube_fixed(6,freq_max%1000/100);
+ 143   3                              digitaltube_fixed(7,freq_max%100/10);
+ 144   3                              digitaltube_fixed(8,freq_max%10);
+ 145   3                      }
+ 146   2                      else if(freq_max/100!=0)
+ 147   2                      {
+ 148   3                              digitaltube_fixed(6,freq_max/100);
+ 149   3                              digitaltube_fixed(7,freq_max%100/10);
+ 150   3                              digitaltube_fixed(8,freq_max%10);
+ 151   3                      }
+ 152   2                      else if(freq_max/100!=0)
+ 153   2                      {
+ 154   3                              digitaltube_fixed(7,freq_max/10);
+ 155   3                              digitaltube_fixed(8,freq_max%10);
+ 156   3                      }
+ 157   2                      else if(freq_max/10!=0)
+ 158   2                      {
+ 159   3                              digitaltube_fixed(8,freq_max/10);
+ 160   3                      }
+ 161   2              }
+ 162   1              else
+ 163   1              {
+ 164   2                      digitaltube_fixed(2,10);
+ 165   2              }
+ 166   1      }
+ 167          void main()
+ 168          {
+ 169   1              init();
+ 170   1              while(1)
+ 171   1              {
+ 172   2              }
+ 173   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    263    ----
+   CODE SIZE        =    788    ----
    CONSTANT SIZE    =   ----    ----
+C51 COMPILER V9.57.0.0   MAIN                                                              03/27/2026 10:49:37 PAGE 4   
+
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     16    ----
+   DATA SIZE        =     17       2
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
