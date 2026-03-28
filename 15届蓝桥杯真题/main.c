@@ -18,26 +18,30 @@
 #define page_back_time 1
 
 
-
-
-
-unsigned char Y4C=0x80;
-unsigned char Y5C=0xA0;
-unsigned char Y6C=0xC0;
-unsigned char Y7C=0xD0;
-
 unsigned char page_count=page_freq;
 unsigned char page_para_count=page_para_p1;
 unsigned char page_back_count=page_back_freq;
 
 int freq=0;
-int freq_real=0;
+unsigned int freq_real=0;
 unsigned int freq_ex=2000;
 int freq_adjust=0;
 
+unsigned char hour;
+unsigned char min;
+unsigned char sec;
+
 unsigned int freq_max=0;
 
-
+void read_time()
+{
+		hour=Read_Ds1302_Byte(0x85);
+		min=Read_Ds1302_Byte(0x83);
+		sec=Read_Ds1302_Byte(0x81);
+		hour=hour/16*10+hour%16;
+		min=min/16*10+min%16;
+		sec=sec/16*10+sec%16;
+}
 void page_freq_display()
 {
 	freq=freq_real+freq_adjust;
@@ -164,10 +168,24 @@ void page_back_display()
 		digitaltube_fixed(2,10);
 	}
 }
+void page_time_display()
+{
+	digitaltube_fixed(1,hour/10);
+	digitaltube_fixed(2,hour%10);
+	digital_tube(3,0xBF);//-
+	digitaltube_fixed(4,min/10);
+	digitaltube_fixed(5,min%10);
+	digital_tube(6,0xBF);
+	digitaltube_fixed(7,sec/10);
+	digitaltube_fixed(8,sec%10);
+}
 void main()
 {
 	init();
+	DS1302_write();
 	while(1)
 	{
+		read_time();
+		page_time_display();
 	}
 }

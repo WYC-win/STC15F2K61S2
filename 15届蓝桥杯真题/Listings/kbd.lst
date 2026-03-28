@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   KBD                                                               03/27/2026 10:49:38 PAGE 1   
+C51 COMPILER V9.57.0.0   KBD                                                               03/28/2026 15:26:02 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE KBD
@@ -62,7 +62,7 @@ line level    source
   52   1              if(key_number == last_key)
   53   1          {
   54   2              if(stable_cnt < 3) stable_cnt++; // 连续3次一致认为稳定（比如每10ms一次 → 30ms消
-C51 COMPILER V9.57.0.0   KBD                                                               03/27/2026 10:49:38 PAGE 2   
+C51 COMPILER V9.57.0.0   KBD                                                               03/28/2026 15:26:02 PAGE 2   
 
              -抖）
   55   2          }

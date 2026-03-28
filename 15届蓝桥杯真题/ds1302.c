@@ -7,7 +7,10 @@
 sbit SCK=P1^7;
 sbit SDA=P2^3;
 sbit RST=P1^3;
-//
+code unsigned char DS1302_write_adr[8]={0x80,0x82,0x84,0x86,0x88,0x8a,0x8c,0x8e};
+code unsigned char DS1302_read_adr[8]={0x81,0x83,0x85,0x87,0x89,0x8b,0x8d,0x8f};
+unsigned char DS1302_time_init[3]={0x05,0x03,0x13};
+
 void Write_Ds1302(unsigned  char temp) 
 {
 	unsigned char i;
@@ -53,4 +56,15 @@ unsigned char Read_Ds1302_Byte ( unsigned char address )
 	SDA=0;	_nop_();
 	SDA=1;	_nop_();
 	return (temp);			
+}
+
+void DS1302_write()
+{
+	unsigned char i;
+	Write_Ds1302_Byte(DS1302_write_adr[7],0x00);
+	for(i=0;i<3;i++)
+	{
+		Write_Ds1302_Byte(DS1302_write_adr[i],DS1302_time_init[i]);
+	}
+	Write_Ds1302_Byte(DS1302_write_adr[7],0x80);
 }

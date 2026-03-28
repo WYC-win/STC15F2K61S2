@@ -1,0 +1,274 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              07/07/2025 14:53:39 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEFINE(PCF8591) DEBUG 
+                    -OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "tim.h"
+   2          #include "seg.h"
+   3          #include <stdio.h>
+   4          #include "key.h"
+   5          #include "ds18b20.h"
+   6          #include "i2c.h"
+   7          
+   8          unsigned int  uiTms;                  // 毫秒值
+   9          unsigned int  uiSec;                  // 秒值
+  10          unsigned char ucState;                // 系统状态
+  11          // 0x00：环境界面，0x10：运动界面，0x20-0x21：参数界面，0x30：统计界面
+  12          unsigned char ucDis;                  // 距离值
+  13          unsigned char ucTem;                  // 温度值
+  14          unsigned char ucAdc;                  // ADC值
+  15          unsigned char ucN;                    // 光强等级
+  16          unsigned char ucDS;                   // 运动状态
+  17          unsigned char ucPC=30;                // 温度参数
+  18          unsigned char ucPL=30;                // 距离参数
+  19          unsigned char ucNum;                  // 继电器吸合次数
+  20          
+  21          void Led_Proc(void);
+  22          void Seg_Proc(void);
+  23          void Key_Proc(void);
+  24          void Data_Proc(void);
+  25          // 主函数
+  26          void main(void)
+  27          {
+  28   1        Close_Peripheral();
+  29   1        T1_Init();
+  30   1        
+  31   1        while (1)
+  32   1        {
+  33   2          Seg_Proc();
+  34   2          Key_Proc();
+  35   2          Led_Proc();
+  36   2          Data_Proc();
+  37   2        }
+  38   1      }
+  39          
+  40          unsigned char pucSeg_Char[12];        // 显示字符
+  41          unsigned char pucSeg_Code[8];         // 显示代码
+  42          unsigned char ucSeg_Pos;              // 显示位置
+  43          unsigned int  uiSeg_Dly;              // 显示刷新延时
+  44          unsigned char ucSeg_Dly;              // 显示移位延时
+  45          void Seg_Proc(void)
+  46          {
+  47   1        if (uiSeg_Dly >= 100)               // 100ms刷新1次
+  48   1        {
+  49   2          uiSeg_Dly = 0;
+  50   2      
+  51   2          switch (ucState)
+  52   2          {
+  53   3            case 0:                         // 环境状态界面
+  54   3              sprintf(pucSeg_Char, "C%2u   N%1u", (int)ucTem, (int)ucN);
+C51 COMPILER V9.60.7.0   MAIN                                                              07/07/2025 14:53:39 PAGE 2   
+
+  55   3              break;
+  56   3            case 0x10:                      // 运动检测界面
+  57   3              sprintf(pucSeg_Char, "L%1u   %03u", (int)ucDS, (int)ucDis);
+  58   3              break;
+  59   3            case 0x20:                      // 温度参数界面
+  60   3              sprintf(pucSeg_Char, "PC    %2u", (int)ucPC);
+  61   3              break;
+  62   3            case 0x21:                      // 距离参数界面
+  63   3              sprintf(pucSeg_Char, "PL    %2u", (int)ucPL);
+  64   3              break;
+  65   3            case 0x30:                      // 统计数据界面
+  66   3              sprintf(pucSeg_Char, "NC  %4u", (int)ucNum);
+  67   3          }
+  68   2          Seg_Tran(pucSeg_Char, pucSeg_Code);
+  69   2        }
+  70   1      }
+  71          
+  72          unsigned char ucKey_Old;              // 旧键值
+  73          unsigned char ucKey_Dly;              // 按键刷新延时
+  74          unsigned int  uiKey_Dly=500;          // 双击或长按延时
+  75          void Key_Proc(void)
+  76          {
+  77   1        unsigned char ucKey_Dn;
+  78   1      
+  79   1        if(ucKey_Dly < 10)                  // 延时10ms消抖
+  80   1          return;
+  81   1        ucKey_Dly = 0;
+  82   1      
+  83   1        ucKey_Dn = Key_Read();              // 键值读取
+  84   1        if (ucKey_Dn != ucKey_Old)          // 键值变化
+  85   1        {
+  86   2          ucKey_Old = ucKey_Dn;
+  87   2          uiKey_Dly = 0;
+  88   2        } else {
+  89   2          ucKey_Dn = 0;
+  90   2        }
+  91   1      
+  92   1        switch (ucKey_Dn)
+  93   1        {
+  94   2          case 4:                           // S4按键按下
+  95   2            ucState &= 0xF0;
+  96   2            ucState += 0x10;                // 切换主界面
+  97   2            if (ucState >= 0x40)
+  98   2              ucState = 0;
+  99   2            break;
+ 100   2          case 5:                           // S5按键按下
+ 101   2            if ((ucState & 0xf0) == 0x20)
+ 102   2              ucState ^= 1;                 // 切换参数子界面
+ 103   2              break;
+ 104   2          case 8:                           // S8按键按下
+ 105   2            if (ucState == 0x20)
+ 106   2                if (ucPC < 80)
+ 107   2                  ucPC++;                   // 温度参数增加1℃
+ 108   2            if (ucState == 0x21)
+ 109   2              if (ucPL < 80)
+ 110   2                ucPL += 5;                  // 距离参数增加5cm
+ 111   2            break;
+ 112   2          case 9:                           // S9按键按下
+ 113   2            if (ucState == 0x20)
+ 114   2              if (ucPC > 20)
+ 115   2                ucPC--;                     // 温度参数减小1℃
+ 116   2            if (ucState == 0x21)
+C51 COMPILER V9.60.7.0   MAIN                                                              07/07/2025 14:53:39 PAGE 3   
+
+ 117   2                if (ucPL > 20)
+ 118   2                  ucPL -= 5;                // 距离参数减小5cm
+ 119   2        }
+ 120   1        if ((ucKey_Old == 20) && (uiKey_Dly > 2000))
+ 121   1          ucNum = 0;                        // 清零继电器吸合次数
+ 122   1      }
+ 123          
+ 124          unsigned char ucLed;                  // LED值
+ 125          unsigned char ucLed_Dly;              // LED刷新延时
+ 126          unsigned char ucUln_Flg;              // 继电器吸合标志
+ 127          unsigned char ucLed8_Flg;             //LED8闪烁标志
+ 128          void Led_Proc(void)
+ 129          {
+ 130   1      
+ 131   1        if (ucLed_Dly < 100)                // 100ms刷新1次
+ 132   1          return;
+ 133   1        ucLed_Dly = 0;
+ 134   1        
+ 135   1        if ((ucState & 0xf0) == 0x20)       // 参数界面
+ 136   1        {
+ 137   2          if(ucLed8_Flg == 1) ucLed ^= 0x80;
+ 138   2          Led_Disp(ucLed);
+ 139   2          return;
+ 140   2        }
+ 141   1      
+ 142   1        if (ucDis < ucPL)                   // 接近
+ 143   1          switch (ucN)                      // 光照等级
+ 144   1          {
+ 145   2            case 1:
+ 146   2              ucLed |= 1;                   // L1点亮
+ 147   2              ucLed &= 0xF1;                // L2-L4熄灭
+ 148   2              break;
+ 149   2            case 2:
+ 150   2              ucLed |= 3;                   // L1-L2点亮
+ 151   2              ucLed &= 0xF3;                // L3-L4熄灭
+ 152   2              break;
+ 153   2            case 3:
+ 154   2              ucLed |= 7;                   // L1-L3点亮
+ 155   2              ucLed &= 0xF7;                // L4熄灭
+ 156   2              break;
+ 157   2            case 4:
+ 158   2              ucLed |= 15;                  // L1-L4点亮
+ 159   2              break;
+ 160   2          }
+ 161   1        else
+ 162   1          ucLed &= 0xF0;                    // L1-L4熄灭
+ 163   1      
+ 164   1        switch (ucDS)                       // 运动状态
+ 165   1        {
+ 166   2          case 1:
+ 167   2              ucLed8_Flg = 0;
+ 168   2              ucLed &= 0x7F;                // L8熄灭
+ 169   2              break;
+ 170   2          case 2:
+ 171   2              ucLed8_Flg = 0;
+ 172   2              ucLed |= 0x80;                // L8点亮
+ 173   2              break;
+ 174   2          case 3:
+ 175   2              ucLed8_Flg = 1;
+ 176   2              ucLed ^= 0x80;                // L8闪烁
+ 177   2              break;
+ 178   2        }
+C51 COMPILER V9.60.7.0   MAIN                                                              07/07/2025 14:53:39 PAGE 4   
+
+ 179   1        Led_Disp(ucLed);
+ 180   1                                            // 接近和高温判定
+ 181   1        if ((ucDis < ucPL) && (ucTem > ucPC))
+ 182   1        {
+ 183   2          Uln_Ctrl(0x10);                   // 继电器吸合
+ 184   2          if (ucUln_Flg == 0)
+ 185   2            {
+ 186   3              ucUln_Flg = 1;
+ 187   3              ucNum++;                      // 继电器吸合次数+1
+ 188   3            }
+ 189   2          }
+ 190   1        else
+ 191   1        {
+ 192   2          Uln_Ctrl(0);                      // 继电器断开
+ 193   2            ucUln_Flg = 0;
+ 194   2        }
+ 195   1      }
+ 196          
+ 197          unsigned int  uiSec1, uiSec2;         // 秒计时
+ 198          unsigned char ucDis1;                 // 距离值
+ 199          unsigned char ucDS1;                  // 运动状态
+ 200          void Data_Proc(void)
+ 201          {
+ 202   1        unsigned char ucDL;
+ 203   1        
+ 204   1        if (uiSec1 == uiSec)
+ 205   1          return;
+ 206   1        uiSec1 = uiSec;
+ 207   1        
+ 208   1        ucAdc = PCF8591_Adc(1)/5.1;         // 光强检测
+ 209   1        if (ucAdc >= 30)
+ 210   1          ucN = 1;
+ 211   1        else if (ucAdc >= 20)
+ 212   1          ucN = 2;
+ 213   1        else if (ucAdc >= 5)
+ 214   1          ucN = 3;
+ 215   1        else
+ 216   1          ucN = 4;
+ 217   1          
+ 218   1        ucDis = Dist_Meas();                // 移动检测
+ 219   1        if ((uiSec-uiSec2) >= 4)            // 未锁定
+ 220   1        {
+ 221   2          if (ucDis > ucDis1)
+ 222   2            ucDL = ucDis - ucDis1;
+ 223   2          else
+ 224   2            ucDL = ucDis1 - ucDis;
+ 225   2      
+ 226   2          if (ucDL < 5)                     // 状态判定
+ 227   2              ucDS = 1;
+ 228   2          else if (ucDL < 10)
+ 229   2            ucDS = 2;
+ 230   2          else
+ 231   2            ucDS = 3;
+ 232   2        }
+ 233   1        ucDis1 = ucDis; 
+ 234   1        
+ 235   1        if (ucDS1 != ucDS)                  // 状态变化
+ 236   1        {
+ 237   2          ucDS1 = ucDS;
+ 238   2          uiSec2 = uiSec;
+ 239   2        }
+ 240   1        
+C51 COMPILER V9.60.7.0   MAIN                                                              07/07/2025 14:53:39 PAGE 5   
+
+ 241   1        ucTem = Temp_Read()>>4;
+ 242   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    708    ----
+   CONSTANT SIZE    =     52    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     51       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
