@@ -6,17 +6,24 @@
 #include "init.h"
 #include "digitaltube.h"
 #include "kbd.h"
+#include "DA.h"
 #define page_freq 0
 #define page_para 1
-#define page_time 3
-#define page_back 4
+#define page_time 2
+#define page_back 3
 
 #define page_para_p1 0
 #define page_para_p2 1
 
 #define page_back_freq 0
 #define page_back_time 1
+unsigned hour_max=0;
+unsigned min_max=0;
+unsigned sec_max=0;
 
+unsigned char L1_ms=0;
+unsigned char L2_ms=0;
+unsigned char key;
 unsigned int t0_count;
 unsigned char gate_10ms = 0;
 
@@ -25,8 +32,8 @@ unsigned char page_para_count=page_para_p1;
 unsigned char page_back_count=page_back_freq;
 
 long freq=0;
-unsigned int freq_real=0;
-unsigned int freq_ex=2000;
+unsigned long freq_real=0;
+unsigned long freq_ex=2000;
 int freq_adjust=0;
 
 unsigned char hour;
@@ -35,17 +42,162 @@ unsigned char sec;
 
 unsigned int freq_max=0;
 
+unsigned char led1_state = 1;
+unsigned char led2_state = 1;
+void LED_Show(void)
+{
+    unsigned char led_dat = 0xFF;
+
+    if(led1_state == 0) led_dat &= ~0x01;   // L1亮
+    else                led_dat |=  0x01;   // L1灭
+
+    if(led2_state == 0) led_dat &= ~0x02;   // L2亮
+    else                led_dat |=  0x02;   // L2灭
+
+    P0 = led_dat;
+    P2 = (P2 & 0x1F) | 0x80;
+    P2 &= 0x1F;
+}
+void DA_out()
+{
+	if(freq>=0)
+	{
+		if(freq<=500)
+		{
+			DA_write(51);
+		}
+		else if(freq>=freq_ex)
+		{
+			DA_write(255);
+		}
+		else
+		{
+			DA_write(51 + ((long)(freq - 500) * 204) / (freq_ex - 500));
+		}
+	}
+	else
+	{
+		DA_write(0);
+	}
+}
 void get_freq_real()
 {
 	EA=0;
 	freq_real=t0_count*10;
 	EA=1;
+	freq=freq_real+freq_adjust;
+	if(freq>freq_max)
+	{
+		freq_max=freq;
+		hour_max=Read_Ds1302_Byte(0x85);
+		min_max=Read_Ds1302_Byte(0x83);
+		sec_max=Read_Ds1302_Byte(0x81);
+		hour_max=hour_max/16*10+hour_max%16;
+		min_max=min_max/16*10+min_max%16;
+		sec_max=sec_max/16*10+sec_max%16;
+	}
 }
 
-void Timer1_Isr(void) interrupt 3
+void Timer_Isr(void) interrupt 3
 {
 	gate_10ms++;
-
+	key=kbd_number();
+	if(key==4)
+	{
+		page_count++;
+		page_para_count=page_para_p1;
+		page_back_count=page_back_freq;
+		if(page_count==4)
+		{
+			page_count=0;
+		}
+	}
+	if(page_count==page_para)
+	{
+		if(key==5)
+		{
+			page_para_count++;
+		}
+		if(page_para_count==2)
+		{
+			page_para_count=0;
+		}
+		if(page_para_count==0)
+		{
+			if(key==8)
+			{
+				freq_ex+=1000;
+				if(freq_ex>9000)freq_ex=9000;
+			}
+			else if(key==9)
+			{
+				freq_ex-=1000;
+				if(freq_ex<1000)freq_ex=1000;
+			}
+		}
+		if(page_para_count==1)
+		{
+			if(key==8)
+			{
+				freq_adjust+=100;
+				if(freq_adjust>900)freq_adjust=900;
+			}
+			else if(key==9)
+			{
+				freq_adjust-=100;
+				if(freq_adjust<-900)freq_adjust=-900;
+			}
+		}
+		
+	}
+	
+	if(page_count==page_back)
+	{
+		if(key==5)
+		{
+			page_back_count++;
+			
+		}
+		if(page_back_count==2)
+		{
+			page_back_count=0;
+		}
+	}
+	if(page_count == page_freq)
+	{
+		L1_ms++;
+		if(L1_ms >= 20)   // 20 * 10ms = 200ms
+		{
+			L1_ms = 0;
+			led1_state = !led1_state;
+		}
+	}
+	else
+	{
+		led1_state = 1;   // 非频率界面灭
+		L1_ms = 0;
+	}
+	
+	if(freq>freq_ex)
+	{
+		L2_ms++;
+		if(L2_ms>=20)
+		{
+			led2_state = !led2_state;
+			L2_ms=0;
+		}
+	}
+	else if(freq < 0)
+	{
+		led2_state = 0;   // 错误状态常亮
+		L2_ms = 0;
+	}
+	else
+	{
+		led2_state = 1;   // 否则灭
+		L2_ms = 0;
+	}
+	
     if(gate_10ms >= 10)
     {
         gate_10ms = 0;
@@ -56,11 +208,12 @@ void Timer1_Isr(void) interrupt 3
         TL0 = 0;
         TR0 = 1;
     }
+	
 }
 
 void Timer_Init(void)		//10毫秒@12.000MHz
 {
-	AUXR &= 0x00;			//定时器时钟12T模式
+	AUXR = 0x00;			//定时器时钟12T模式
 	TMOD = 0x04;			//设置定时器模式
 	TL1 = 0xF0;				//设置定时初1始值
 	TH1 = 0xD8;				//设置定时1初始值
@@ -89,7 +242,6 @@ void read_time()
 }
 void page_freq_display()
 {
-	freq=freq_real+freq_adjust;
 	digitaltube_fixed(1,15);
 	if(freq>=0)
 	{
@@ -121,7 +273,7 @@ void page_freq_display()
 		}
 		else 
 		{
-			digitaltube_fixed(8,freq/10);
+			digitaltube_fixed(8,freq);
 		}
 	}
 	else
@@ -198,19 +350,25 @@ void page_back_display()
 			digitaltube_fixed(7,freq_max%100/10);
 			digitaltube_fixed(8,freq_max%10);
 		}
-		else if(freq_max/100!=0)
+		else if(freq_max/10!=0)
 		{
 			digitaltube_fixed(7,freq_max/10);
 			digitaltube_fixed(8,freq_max%10);
 		}
-		else if(freq_max/10!=0)
+		else
 		{
-			digitaltube_fixed(8,freq_max/10);
+			digitaltube_fixed(8,freq_max);
 		}
 	}
 	else
 	{
 		digitaltube_fixed(2,10);
+		digitaltube_fixed(3,hour_max/10);
+		digitaltube_fixed(4,hour_max%10);
+		digitaltube_fixed(5,min_max/10);
+		digitaltube_fixed(6,min_max%10);
+		digitaltube_fixed(7,sec_max/10);
+		digitaltube_fixed(8,sec_max%10);
 	}
 }
 void page_time_display()
@@ -228,9 +386,28 @@ void main()
 {
 	init();
 	Timer_Init();
+	DS1302_write();
 	while(1)
 	{
 		get_freq_real();
-		page_freq_display();
+		DA_out();
+		LED_Show();
+		if(page_count==page_freq)
+		{
+			page_freq_display();
+		}
+		else if(page_count==page_para)
+		{
+			page_para_display();
+		}
+		else if(page_count==page_time)
+		{
+			read_time();
+			page_time_display();
+		}
+		else if(page_count==page_back)
+		{
+			page_back_display();
+		}
 	}
 }

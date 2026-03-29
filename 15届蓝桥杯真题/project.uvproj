@@ -449,6 +449,16 @@
               <FileType>5</FileType>
               <FilePath>.\latch.h</FilePath>
             </File>
+            <File>
+              <FileName>DA.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DA.c</FilePath>
+            </File>
+            <File>
+              <FileName>DA.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DA.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

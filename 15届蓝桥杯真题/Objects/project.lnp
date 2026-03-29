@@ -6,6 +6,7 @@
 ".\Objects\digitaltube.obj",
 ".\Objects\delay.obj",
 ".\Objects\kbd.obj",
-".\Objects\latch.obj" 
+".\Objects\latch.obj",
+".\Objects\DA.obj" 
 TO ".\Objects\project" 
 PRINT(".\Listings\project.m51") RAMSIZE(256) 

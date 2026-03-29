@@ -1,0 +1,36 @@
+C51 COMPILER V9.57.0.0   DA                                                                03/29/2026 22:03:23 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE DA
+OBJECT MODULE PLACED IN .\Objects\DA.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE DA.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\DA.lst
+                    -) OBJECT(.\Objects\DA.obj)
+
+line level    source
+
+   1          #include "iic.h"
+   2          void DA_write(unsigned char dat)
+   3          {
+   4   1              I2CStart();
+   5   1              I2CSendByte(0x90);
+   6   1              I2CWaitAck();
+   7   1              I2CSendByte(0x40);
+   8   1              I2CWaitAck();
+   9   1              I2CSendByte(dat);
+  10   1              I2CWaitAck();
+  11   1              I2CStop();
+  12   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     32    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

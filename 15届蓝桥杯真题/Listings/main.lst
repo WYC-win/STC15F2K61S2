@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 22:03:22 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -16,250 +16,431 @@ line level    source
    6          #include "init.h"
    7          #include "digitaltube.h"
    8          #include "kbd.h"
-   9          #define page_freq 0
-  10          #define page_para 1
-  11          #define page_time 3
-  12          #define page_back 4
-  13          
-  14          #define page_para_p1 0
-  15          #define page_para_p2 1
-  16          
-  17          #define page_back_freq 0
-  18          #define page_back_time 1
-  19          
-  20          unsigned int t0_count;
-  21          unsigned char gate_10ms = 0;
-  22          
-  23          unsigned char page_count=page_freq;
-  24          unsigned char page_para_count=page_para_p1;
-  25          unsigned char page_back_count=page_back_freq;
-  26          
-  27          long freq=0;
-  28          unsigned int freq_real=0;
-  29          unsigned int freq_ex=2000;
-  30          int freq_adjust=0;
-  31          
-  32          unsigned char hour;
-  33          unsigned char min;
-  34          unsigned char sec;
-  35          
-  36          unsigned int freq_max=0;
-  37          
-  38          void get_freq_real()
-  39          {
-  40   1              EA=0;
-  41   1              freq_real=t0_count*10;
-  42   1              EA=1;
-  43   1      }
+   9          #include "DA.h"
+  10          #define page_freq 0
+  11          #define page_para 1
+  12          #define page_time 2
+  13          #define page_back 3
+  14          
+  15          #define page_para_p1 0
+  16          #define page_para_p2 1
+  17          
+  18          #define page_back_freq 0
+  19          #define page_back_time 1
+  20          unsigned hour_max=0;
+  21          unsigned min_max=0;
+  22          unsigned sec_max=0;
+  23          
+  24          unsigned char L1_ms=0;
+  25          unsigned char L2_ms=0;
+  26          unsigned char key;
+  27          unsigned int t0_count;
+  28          unsigned char gate_10ms = 0;
+  29          
+  30          unsigned char page_count=page_freq;
+  31          unsigned char page_para_count=page_para_p1;
+  32          unsigned char page_back_count=page_back_freq;
+  33          
+  34          long freq=0;
+  35          unsigned long freq_real=0;
+  36          unsigned long freq_ex=2000;
+  37          int freq_adjust=0;
+  38          
+  39          unsigned char hour;
+  40          unsigned char min;
+  41          unsigned char sec;
+  42          
+  43          unsigned int freq_max=0;
   44          
-  45          void Timer1_Isr(void) interrupt 3
-  46          {
-  47   1              gate_10ms++;
-  48   1      
-  49   1          if(gate_10ms >= 10)
-  50   1          {
-  51   2              gate_10ms = 0;
-  52   2      
-  53   2              TR0 = 0;
-  54   2              t0_count = ((unsigned int)TH0 << 8) | TL0;
-C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 2   
+  45          unsigned char led1_state = 1;
+  46          unsigned char led2_state = 1;
+  47          void LED_Show(void)
+  48          {
+  49   1          unsigned char led_dat = 0xFF;
+  50   1      
+  51   1          if(led1_state == 0) led_dat &= ~0x01;   // L1亮
+  52   1          else                led_dat |=  0x01;   // L1灭
+  53   1      
+  54   1          if(led2_state == 0) led_dat &= ~0x02;   // L2亮
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 22:03:22 PAGE 2   
 
-  55   2              TH0 = 0;
-  56   2              TL0 = 0;
-  57   2              TR0 = 1;
-  58   2          }
-  59   1      }
-  60          
-  61          void Timer_Init(void)           //1毫秒@12.000MHz
+  55   1          else                led_dat |=  0x02;   // L2灭
+  56   1      
+  57   1          P0 = led_dat;
+  58   1          P2 = (P2 & 0x1F) | 0x80;
+  59   1          P2 &= 0x1F;
+  60   1      }
+  61          void DA_out()
   62          {
-  63   1              AUXR &= 0x00;                   //定时器时钟12T模式
-  64   1              TMOD = 0x04;                    //设置定时器模式
-  65   1              TL1 = 0xF0;                             //设置定时初始值
-  66   1              TH1 = 0xD8;                             //设置定时初始值
-  67   1              
-  68   1              TL0 = 0x00;
-  69   1              TH0 = 0x00;
-  70   1              
-  71   1              TF1 = 0;                                //清除TF1标志
-  72   1              TF0 = 0;
-  73   1              
-  74   1              TR1 = 1;                                //定时器1开始计时
-  75   1              TR0 = 1;
-  76   1              
-  77   1              ET1 = 1;                                //使能定时器1中断
-  78   1              EA = 1;
-  79   1      }
-  80          
-  81          void read_time()
-  82          {
-  83   1                      hour=Read_Ds1302_Byte(0x85);
-  84   1                      min=Read_Ds1302_Byte(0x83);
-  85   1                      sec=Read_Ds1302_Byte(0x81);
-  86   1                      hour=hour/16*10+hour%16;
-  87   1                      min=min/16*10+min%16;
-  88   1                      sec=sec/16*10+sec%16;
-  89   1      }
-  90          void page_freq_display()
-  91          {
-  92   1              freq=freq_real+freq_adjust;
-  93   1              digitaltube_fixed(1,15);
-  94   1              if(freq>=0)
-  95   1              {
-  96   2                      if(freq/10000!=0)
-  97   2                      {
-  98   3                              digitaltube_fixed(4,freq/10000);
-  99   3                              digitaltube_fixed(5,freq%10000/1000);
- 100   3                              digitaltube_fixed(6,freq%1000/100);
- 101   3                              digitaltube_fixed(7,freq%100/10);
- 102   3                              digitaltube_fixed(8,freq%10);
- 103   3                      }
- 104   2                      else if(freq/1000!=0)
- 105   2                      {
- 106   3                              digitaltube_fixed(5,freq/1000);
- 107   3                              digitaltube_fixed(6,freq%1000/100);
- 108   3                              digitaltube_fixed(7,freq%100/10);
- 109   3                              digitaltube_fixed(8,freq%10);
- 110   3                      }
- 111   2                      else if(freq/100!=0)
- 112   2                      {
- 113   3                              digitaltube_fixed(6,freq/100);
- 114   3                              digitaltube_fixed(7,freq%100/10);
- 115   3                              digitaltube_fixed(8,freq%10);
- 116   3                      }
-C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 3   
+  63   1              if(freq>=0)
+  64   1              {
+  65   2                      if(freq<=500)
+  66   2                      {
+  67   3                              DA_write(51);
+  68   3                      }
+  69   2                      else if(freq>=freq_ex)
+  70   2                      {
+  71   3                              DA_write(255);
+  72   3                      }
+  73   2                      else
+  74   2                      {
+  75   3                              DA_write(51 + ((long)(freq - 500) * 204) / (freq_ex - 500));
+  76   3                      }
+  77   2              }
+  78   1              else
+  79   1              {
+  80   2                      DA_write(0);
+  81   2              }
+  82   1      }
+  83          void get_freq_real()
+  84          {
+  85   1              EA=0;
+  86   1              freq_real=t0_count*10;
+  87   1              EA=1;
+  88   1              freq=freq_real+freq_adjust;
+  89   1              if(freq>freq_max)
+  90   1              {
+  91   2                      freq_max=freq;
+  92   2                      hour_max=Read_Ds1302_Byte(0x85);
+  93   2                      min_max=Read_Ds1302_Byte(0x83);
+  94   2                      sec_max=Read_Ds1302_Byte(0x81);
+  95   2                      hour_max=hour_max/16*10+hour_max%16;
+  96   2                      min_max=min_max/16*10+min_max%16;
+  97   2                      sec_max=sec_max/16*10+sec_max%16;
+  98   2              }
+  99   1      }
+ 100          
+ 101          void Timer_Isr(void) interrupt 3
+ 102          {
+ 103   1              gate_10ms++;
+ 104   1              key=kbd_number();
+ 105   1              if(key==4)
+ 106   1              {
+ 107   2                      page_count++;
+ 108   2                      page_para_count=page_para_p1;
+ 109   2                      page_back_count=page_back_freq;
+ 110   2                      if(page_count==4)
+ 111   2                      {
+ 112   3                              page_count=0;
+ 113   3                      }
+ 114   2              }
+ 115   1              if(page_count==page_para)
+ 116   1              {
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 22:03:22 PAGE 3   
 
- 117   2                      else if(freq/10!=0)
+ 117   2                      if(key==5)
  118   2                      {
- 119   3                              digitaltube_fixed(7,freq/10);
- 120   3                              digitaltube_fixed(8,freq%10);
- 121   3                      }
- 122   2                      else 
- 123   2                      {
- 124   3                              digitaltube_fixed(8,freq/10);
- 125   3                      }
- 126   2              }
- 127   1              else
- 128   1              {
- 129   2                      digital_tube(7,0xC7);//L
- 130   2                      digital_tube(8,0xC7);
- 131   2              }
- 132   1              
- 133   1      }
- 134          
- 135          void page_para_display()
- 136          {
- 137   1              digital_tube(1,0x8C);//P
- 138   1              if(page_para_count==0)
- 139   1              {
- 140   2                      digitaltube_fixed(2,1);
- 141   2                      digitaltube_fixed(5,freq_ex/1000);
- 142   2                      digitaltube_fixed(6,freq_ex%1000/100);
- 143   2                      digitaltube_fixed(7,freq_ex%100/10);
- 144   2                      digitaltube_fixed(8,freq_ex%10);
- 145   2              }
- 146   1              else
- 147   1              {
- 148   2                      digitaltube_fixed(2,2);
- 149   2                      if(freq_adjust>0)
- 150   2                      {
- 151   3                                      digitaltube_fixed(6,freq_adjust/100);
- 152   3                                      digitaltube_fixed(7,freq_adjust%100/10);
- 153   3                                      digitaltube_fixed(8,freq_adjust%10);
- 154   3                              
- 155   3                      }
- 156   2                      else if(freq_adjust<0)
+ 119   3                              page_para_count++;
+ 120   3                      }
+ 121   2                      if(page_para_count==2)
+ 122   2                      {
+ 123   3                              page_para_count=0;
+ 124   3                      }
+ 125   2                      if(page_para_count==0)
+ 126   2                      {
+ 127   3                              if(key==8)
+ 128   3                              {
+ 129   4                                      freq_ex+=1000;
+ 130   4                                      if(freq_ex>9000)freq_ex=9000;
+ 131   4                              }
+ 132   3                              else if(key==9)
+ 133   3                              {
+ 134   4                                      freq_ex-=1000;
+ 135   4                                      if(freq_ex<1000)freq_ex=1000;
+ 136   4                              }
+ 137   3                      }
+ 138   2                      if(page_para_count==1)
+ 139   2                      {
+ 140   3                              if(key==8)
+ 141   3                              {
+ 142   4                                      freq_adjust+=100;
+ 143   4                                      if(freq_adjust>900)freq_adjust=900;
+ 144   4                              }
+ 145   3                              else if(key==9)
+ 146   3                              {
+ 147   4                                      freq_adjust-=100;
+ 148   4                                      if(freq_adjust<-900)freq_adjust=-900;
+ 149   4                              }
+ 150   3                      }
+ 151   2                      
+ 152   2              }
+ 153   1              
+ 154   1              if(page_count==page_back)
+ 155   1              {
+ 156   2                      if(key==5)
  157   2                      {
- 158   3                              int tem_dat;
- 159   3                              tem_dat=0-freq_adjust;
- 160   3                              digital_tube(5,0xBF);//-
- 161   3                              digitaltube_fixed(6,tem_dat/100);
- 162   3                              digitaltube_fixed(7,tem_dat%100/10);
- 163   3                              digitaltube_fixed(8,tem_dat%10);
+ 158   3                              page_back_count++;
+ 159   3                              
+ 160   3                      }
+ 161   2                      if(page_back_count==2)
+ 162   2                      {
+ 163   3                              page_back_count=0;
  164   3                      }
- 165   2                      else
- 166   2                      {
- 167   3                              digitaltube_fixed(8,freq_adjust);
- 168   3                      }
- 169   2      
- 170   2              }
- 171   1      }
- 172          
- 173          
- 174          void page_back_display()
- 175          {
- 176   1              digital_tube(1,0x89);//H
- 177   1              if(page_back_count==0)
- 178   1              {
-C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 4   
+ 165   2              }
+ 166   1              if(page_count == page_freq)
+ 167   1              {
+ 168   2                      L1_ms++;
+ 169   2                      if(L1_ms >= 20)   // 20 * 10ms = 200ms
+ 170   2                      {
+ 171   3                              L1_ms = 0;
+ 172   3                              led1_state = !led1_state;
+ 173   3                      }
+ 174   2              }
+ 175   1              else
+ 176   1              {
+ 177   2                      led1_state = 1;   // 非频率界面灭
+ 178   2                      L1_ms = 0;
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 22:03:22 PAGE 4   
 
- 179   2                      digitaltube_fixed(2,15);
- 180   2                      if(freq_max/10000!=0)
- 181   2                      {
- 182   3                              digitaltube_fixed(4,freq_max/10000);
- 183   3                              digitaltube_fixed(5,freq_max%10000/1000);
- 184   3                              digitaltube_fixed(6,freq_max%1000/100);
- 185   3                              digitaltube_fixed(7,freq_max%100/10);
- 186   3                              digitaltube_fixed(8,freq_max%10);
- 187   3                      }
- 188   2                      else if(freq_max/1000!=0)
- 189   2                      {
- 190   3                              digitaltube_fixed(5,freq_max/1000);
- 191   3                              digitaltube_fixed(6,freq_max%1000/100);
- 192   3                              digitaltube_fixed(7,freq_max%100/10);
- 193   3                              digitaltube_fixed(8,freq_max%10);
- 194   3                      }
- 195   2                      else if(freq_max/100!=0)
- 196   2                      {
- 197   3                              digitaltube_fixed(6,freq_max/100);
- 198   3                              digitaltube_fixed(7,freq_max%100/10);
- 199   3                              digitaltube_fixed(8,freq_max%10);
- 200   3                      }
- 201   2                      else if(freq_max/100!=0)
- 202   2                      {
- 203   3                              digitaltube_fixed(7,freq_max/10);
- 204   3                              digitaltube_fixed(8,freq_max%10);
- 205   3                      }
- 206   2                      else if(freq_max/10!=0)
- 207   2                      {
- 208   3                              digitaltube_fixed(8,freq_max/10);
- 209   3                      }
- 210   2              }
- 211   1              else
- 212   1              {
- 213   2                      digitaltube_fixed(2,10);
- 214   2              }
- 215   1      }
- 216          void page_time_display()
- 217          {
- 218   1              digitaltube_fixed(1,hour/10);
- 219   1              digitaltube_fixed(2,hour%10);
- 220   1              digital_tube(3,0xBF);//-
- 221   1              digitaltube_fixed(4,min/10);
- 222   1              digitaltube_fixed(5,min%10);
- 223   1              digital_tube(6,0xBF);
- 224   1              digitaltube_fixed(7,sec/10);
- 225   1              digitaltube_fixed(8,sec%10);
- 226   1      }
- 227          void main()
- 228          {
- 229   1              init();
- 230   1              Timer_Init();
- 231   1              while(1)
- 232   1              {
- 233   2                      get_freq_real();
- 234   2                      page_freq_display();
- 235   2              }
- 236   1      }
+ 179   2              }
+ 180   1              
+ 181   1              if(freq>freq_ex)
+ 182   1              {
+ 183   2                      L2_ms++;
+ 184   2                      if(L2_ms>=20)
+ 185   2                      {
+ 186   3                              led2_state = !led2_state;
+ 187   3                              L2_ms=0;
+ 188   3                      }
+ 189   2              }
+ 190   1              else if(freq < 0)
+ 191   1              {
+ 192   2                      led2_state = 0;   // 错误状态常亮
+ 193   2                      L2_ms = 0;
+ 194   2              }
+ 195   1              else
+ 196   1              {
+ 197   2                      led2_state = 1;   // 否则灭
+ 198   2                      L2_ms = 0;
+ 199   2              }
+ 200   1              
+ 201   1          if(gate_10ms >= 10)
+ 202   1          {
+ 203   2              gate_10ms = 0;
+ 204   2      
+ 205   2              TR0 = 0;
+ 206   2              t0_count = ((unsigned int)TH0 << 8) | TL0;
+ 207   2              TH0 = 0;
+ 208   2              TL0 = 0;
+ 209   2              TR0 = 1;
+ 210   2          }
+ 211   1              
+ 212   1      }
+ 213          
+ 214          void Timer_Init(void)           //10毫秒@12.000MHz
+ 215          {
+ 216   1              AUXR = 0x00;                    //定时器时钟12T模式
+ 217   1              TMOD = 0x04;                    //设置定时器模式
+ 218   1              TL1 = 0xF0;                             //设置定时初1始值
+ 219   1              TH1 = 0xD8;                             //设置定时1初始值
+ 220   1              
+ 221   1              TL0 = 0x00;
+ 222   1              TH0 = 0x00;
+ 223   1              
+ 224   1              TF1 = 0;                                //清除TF1标志
+ 225   1              TF0 = 0;
+ 226   1              
+ 227   1              TR1 = 1;                                //定时器1开始计时
+ 228   1              TR0 = 1;
+ 229   1              
+ 230   1              ET1 = 1;                                //使能定时器1中断
+ 231   1              EA = 1;
+ 232   1      }
+ 233          
+ 234          void read_time()
+ 235          {
+ 236   1                      hour=Read_Ds1302_Byte(0x85);
+ 237   1                      min=Read_Ds1302_Byte(0x83);
+ 238   1                      sec=Read_Ds1302_Byte(0x81);
+ 239   1                      hour=hour/16*10+hour%16;
+ 240   1                      min=min/16*10+min%16;
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 22:03:22 PAGE 5   
+
+ 241   1                      sec=sec/16*10+sec%16;
+ 242   1      }
+ 243          void page_freq_display()
+ 244          {
+ 245   1              digitaltube_fixed(1,15);
+ 246   1              if(freq>=0)
+ 247   1              {
+ 248   2                      if(freq/10000!=0)
+ 249   2                      {
+ 250   3                              digitaltube_fixed(4,freq/10000);
+ 251   3                              digitaltube_fixed(5,freq%10000/1000);
+ 252   3                              digitaltube_fixed(6,freq%1000/100);
+ 253   3                              digitaltube_fixed(7,freq%100/10);
+ 254   3                              digitaltube_fixed(8,freq%10);
+ 255   3                      }
+ 256   2                      else if(freq/1000!=0)
+ 257   2                      {
+ 258   3                              digitaltube_fixed(5,freq/1000);
+ 259   3                              digitaltube_fixed(6,freq%1000/100);
+ 260   3                              digitaltube_fixed(7,freq%100/10);
+ 261   3                              digitaltube_fixed(8,freq%10);
+ 262   3                      }
+ 263   2                      else if(freq/100!=0)
+ 264   2                      {
+ 265   3                              digitaltube_fixed(6,freq/100);
+ 266   3                              digitaltube_fixed(7,freq%100/10);
+ 267   3                              digitaltube_fixed(8,freq%10);
+ 268   3                      }
+ 269   2                      else if(freq/10!=0)
+ 270   2                      {
+ 271   3                              digitaltube_fixed(7,freq/10);
+ 272   3                              digitaltube_fixed(8,freq%10);
+ 273   3                      }
+ 274   2                      else 
+ 275   2                      {
+ 276   3                              digitaltube_fixed(8,freq);
+ 277   3                      }
+ 278   2              }
+ 279   1              else
+ 280   1              {
+ 281   2                      digital_tube(7,0xC7);//L
+ 282   2                      digital_tube(8,0xC7);
+ 283   2              }
+ 284   1              
+ 285   1      }
+ 286          
+ 287          void page_para_display()
+ 288          {
+ 289   1              digital_tube(1,0x8C);//P
+ 290   1              if(page_para_count==0)
+ 291   1              {
+ 292   2                      digitaltube_fixed(2,1);
+ 293   2                      digitaltube_fixed(5,freq_ex/1000);
+ 294   2                      digitaltube_fixed(6,freq_ex%1000/100);
+ 295   2                      digitaltube_fixed(7,freq_ex%100/10);
+ 296   2                      digitaltube_fixed(8,freq_ex%10);
+ 297   2              }
+ 298   1              else
+ 299   1              {
+ 300   2                      digitaltube_fixed(2,2);
+ 301   2                      if(freq_adjust>0)
+ 302   2                      {
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 22:03:22 PAGE 6   
+
+ 303   3                                      digitaltube_fixed(6,freq_adjust/100);
+ 304   3                                      digitaltube_fixed(7,freq_adjust%100/10);
+ 305   3                                      digitaltube_fixed(8,freq_adjust%10);
+ 306   3                              
+ 307   3                      }
+ 308   2                      else if(freq_adjust<0)
+ 309   2                      {
+ 310   3                              int tem_dat;
+ 311   3                              tem_dat=0-freq_adjust;
+ 312   3                              digital_tube(5,0xBF);//-
+ 313   3                              digitaltube_fixed(6,tem_dat/100);
+ 314   3                              digitaltube_fixed(7,tem_dat%100/10);
+ 315   3                              digitaltube_fixed(8,tem_dat%10);
+ 316   3                      }
+ 317   2                      else
+ 318   2                      {
+ 319   3                              digitaltube_fixed(8,freq_adjust);
+ 320   3                      }
+ 321   2      
+ 322   2              }
+ 323   1      }
+ 324          
+ 325          
+ 326          void page_back_display()
+ 327          {
+ 328   1              digital_tube(1,0x89);//H
+ 329   1              if(page_back_count==0)
+ 330   1              {
+ 331   2                      digitaltube_fixed(2,15);
+ 332   2                      if(freq_max/10000!=0)
+ 333   2                      {
+ 334   3                              digitaltube_fixed(4,freq_max/10000);
+ 335   3                              digitaltube_fixed(5,freq_max%10000/1000);
+ 336   3                              digitaltube_fixed(6,freq_max%1000/100);
+ 337   3                              digitaltube_fixed(7,freq_max%100/10);
+ 338   3                              digitaltube_fixed(8,freq_max%10);
+ 339   3                      }
+ 340   2                      else if(freq_max/1000!=0)
+ 341   2                      {
+ 342   3                              digitaltube_fixed(5,freq_max/1000);
+ 343   3                              digitaltube_fixed(6,freq_max%1000/100);
+ 344   3                              digitaltube_fixed(7,freq_max%100/10);
+ 345   3                              digitaltube_fixed(8,freq_max%10);
+ 346   3                      }
+ 347   2                      else if(freq_max/100!=0)
+ 348   2                      {
+ 349   3                              digitaltube_fixed(6,freq_max/100);
+ 350   3                              digitaltube_fixed(7,freq_max%100/10);
+ 351   3                              digitaltube_fixed(8,freq_max%10);
+ 352   3                      }
+ 353   2                      else if(freq_max/10!=0)
+ 354   2                      {
+ 355   3                              digitaltube_fixed(7,freq_max/10);
+ 356   3                              digitaltube_fixed(8,freq_max%10);
+ 357   3                      }
+ 358   2                      else
+ 359   2                      {
+ 360   3                              digitaltube_fixed(8,freq_max);
+ 361   3                      }
+ 362   2              }
+ 363   1              else
+ 364   1              {
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 22:03:22 PAGE 7   
+
+ 365   2                      digitaltube_fixed(2,10);
+ 366   2                      digitaltube_fixed(3,hour_max/10);
+ 367   2                      digitaltube_fixed(4,hour_max%10);
+ 368   2                      digitaltube_fixed(5,min_max/10);
+ 369   2                      digitaltube_fixed(6,min_max%10);
+ 370   2                      digitaltube_fixed(7,sec_max/10);
+ 371   2                      digitaltube_fixed(8,sec_max%10);
+ 372   2              }
+ 373   1      }
+ 374          void page_time_display()
+ 375          {
+ 376   1              digitaltube_fixed(1,hour/10);
+ 377   1              digitaltube_fixed(2,hour%10);
+ 378   1              digital_tube(3,0xBF);//-
+ 379   1              digitaltube_fixed(4,min/10);
+ 380   1              digitaltube_fixed(5,min%10);
+ 381   1              digital_tube(6,0xBF);
+ 382   1              digitaltube_fixed(7,sec/10);
+ 383   1              digitaltube_fixed(8,sec%10);
+ 384   1      }
+ 385          void main()
+ 386          {
+ 387   1              init();
+ 388   1              Timer_Init();
+ 389   1              DS1302_write();
+ 390   1              while(1)
+ 391   1              {
+ 392   2                      get_freq_real();
+ 393   2                      DA_out();
+ 394   2                      LED_Show();
+ 395   2                      if(page_count==page_freq)
+ 396   2                      {
+ 397   3                              page_freq_display();
+ 398   3                      }
+ 399   2                      else if(page_count==page_para)
+ 400   2                      {
+ 401   3                              page_para_display();
+ 402   3                      }
+ 403   2                      else if(page_count==page_time)
+ 404   2                      {
+ 405   3                              read_time();
+ 406   3                              page_time_display();
+ 407   3                      }
+ 408   2                      else if(page_count==page_back)
+ 409   2                      {
+ 410   3                              page_back_display();
+ 411   3                      }
+ 412   2              }
+ 413   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1222    ----
-C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 5   
-
+   CODE SIZE        =   2121    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     21       2
+   DATA SIZE        =     36       2
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
