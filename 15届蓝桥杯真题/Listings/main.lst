@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              03/28/2026 15:26:02 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -27,192 +27,239 @@ line level    source
   17          #define page_back_freq 0
   18          #define page_back_time 1
   19          
-  20          
-  21          unsigned char page_count=page_freq;
-  22          unsigned char page_para_count=page_para_p1;
-  23          unsigned char page_back_count=page_back_freq;
-  24          
-  25          int freq=0;
-  26          unsigned int freq_real=0;
-  27          unsigned int freq_ex=2000;
-  28          int freq_adjust=0;
-  29          
-  30          unsigned char hour;
-  31          unsigned char min;
-  32          unsigned char sec;
-  33          
-  34          unsigned int freq_max=0;
+  20          unsigned int t0_count;
+  21          unsigned char gate_10ms = 0;
+  22          
+  23          unsigned char page_count=page_freq;
+  24          unsigned char page_para_count=page_para_p1;
+  25          unsigned char page_back_count=page_back_freq;
+  26          
+  27          long freq=0;
+  28          unsigned int freq_real=0;
+  29          unsigned int freq_ex=2000;
+  30          int freq_adjust=0;
+  31          
+  32          unsigned char hour;
+  33          unsigned char min;
+  34          unsigned char sec;
   35          
-  36          void read_time()
-  37          {
-  38   1                      hour=Read_Ds1302_Byte(0x85);
-  39   1                      min=Read_Ds1302_Byte(0x83);
-  40   1                      sec=Read_Ds1302_Byte(0x81);
-  41   1                      hour=hour/16*10+hour%16;
-  42   1                      min=min/16*10+min%16;
-  43   1                      sec=sec/16*10+sec%16;
-  44   1      }
-  45          void page_freq_display()
+  36          unsigned int freq_max=0;
+  37          
+  38          void get_freq_real()
+  39          {
+  40   1              EA=0;
+  41   1              freq_real=t0_count*10;
+  42   1              EA=1;
+  43   1      }
+  44          
+  45          void Timer1_Isr(void) interrupt 3
   46          {
-  47   1              freq=freq_real+freq_adjust;
-  48   1              digitaltube_fixed(1,15);
-  49   1              if(freq>=0)
-  50   1              {
-  51   2                      if(freq/10000!=0)
-  52   2                      {
-  53   3                              digitaltube_fixed(4,freq/10000);
-  54   3                              digitaltube_fixed(5,freq%10000/1000);
-C51 COMPILER V9.57.0.0   MAIN                                                              03/28/2026 15:26:02 PAGE 2   
+  47   1              gate_10ms++;
+  48   1      
+  49   1          if(gate_10ms >= 10)
+  50   1          {
+  51   2              gate_10ms = 0;
+  52   2      
+  53   2              TR0 = 0;
+  54   2              t0_count = ((unsigned int)TH0 << 8) | TL0;
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 2   
 
-  55   3                              digitaltube_fixed(6,freq%1000/100);
-  56   3                              digitaltube_fixed(7,freq%100/10);
-  57   3                              digitaltube_fixed(8,freq%10);
-  58   3                      }
-  59   2                      else if(freq/1000!=0)
-  60   2                      {
-  61   3                              digitaltube_fixed(5,freq/1000);
-  62   3                              digitaltube_fixed(6,freq%1000/100);
-  63   3                              digitaltube_fixed(7,freq%100/10);
-  64   3                              digitaltube_fixed(8,freq%10);
-  65   3                      }
-  66   2                      else if(freq/100!=0)
-  67   2                      {
-  68   3                              digitaltube_fixed(6,freq/100);
-  69   3                              digitaltube_fixed(7,freq%100/10);
-  70   3                              digitaltube_fixed(8,freq%10);
-  71   3                      }
-  72   2                      else if(freq/100!=0)
-  73   2                      {
-  74   3                              digitaltube_fixed(7,freq/10);
-  75   3                              digitaltube_fixed(8,freq%10);
-  76   3                      }
-  77   2                      else if(freq/10!=0)
-  78   2                      {
-  79   3                              digitaltube_fixed(8,freq/10);
-  80   3                      }
-  81   2              }
-  82   1              else
-  83   1              {
-  84   2                      digital_tube(7,0xC7);//L
-  85   2                      digital_tube(8,0xC7);
-  86   2              }
-  87   1              
-  88   1      }
-  89          
-  90          void page_para_display()
+  55   2              TH0 = 0;
+  56   2              TL0 = 0;
+  57   2              TR0 = 1;
+  58   2          }
+  59   1      }
+  60          
+  61          void Timer_Init(void)           //1毫秒@12.000MHz
+  62          {
+  63   1              AUXR &= 0x00;                   //定时器时钟12T模式
+  64   1              TMOD = 0x04;                    //设置定时器模式
+  65   1              TL1 = 0xF0;                             //设置定时初始值
+  66   1              TH1 = 0xD8;                             //设置定时初始值
+  67   1              
+  68   1              TL0 = 0x00;
+  69   1              TH0 = 0x00;
+  70   1              
+  71   1              TF1 = 0;                                //清除TF1标志
+  72   1              TF0 = 0;
+  73   1              
+  74   1              TR1 = 1;                                //定时器1开始计时
+  75   1              TR0 = 1;
+  76   1              
+  77   1              ET1 = 1;                                //使能定时器1中断
+  78   1              EA = 1;
+  79   1      }
+  80          
+  81          void read_time()
+  82          {
+  83   1                      hour=Read_Ds1302_Byte(0x85);
+  84   1                      min=Read_Ds1302_Byte(0x83);
+  85   1                      sec=Read_Ds1302_Byte(0x81);
+  86   1                      hour=hour/16*10+hour%16;
+  87   1                      min=min/16*10+min%16;
+  88   1                      sec=sec/16*10+sec%16;
+  89   1      }
+  90          void page_freq_display()
   91          {
-  92   1              digital_tube(1,0x8C);//P
-  93   1              if(page_para_count==0)
-  94   1              {
-  95   2                      digitaltube_fixed(2,1);
-  96   2                      digitaltube_fixed(5,freq_ex/1000);
-  97   2                      digitaltube_fixed(6,freq_ex%1000/100);
-  98   2                      digitaltube_fixed(7,freq_ex%100/10);
-  99   2                      digitaltube_fixed(8,freq_ex%10);
- 100   2              }
- 101   1              else
- 102   1              {
- 103   2                      digitaltube_fixed(2,2);
- 104   2                      if(freq_adjust>0)
+  92   1              freq=freq_real+freq_adjust;
+  93   1              digitaltube_fixed(1,15);
+  94   1              if(freq>=0)
+  95   1              {
+  96   2                      if(freq/10000!=0)
+  97   2                      {
+  98   3                              digitaltube_fixed(4,freq/10000);
+  99   3                              digitaltube_fixed(5,freq%10000/1000);
+ 100   3                              digitaltube_fixed(6,freq%1000/100);
+ 101   3                              digitaltube_fixed(7,freq%100/10);
+ 102   3                              digitaltube_fixed(8,freq%10);
+ 103   3                      }
+ 104   2                      else if(freq/1000!=0)
  105   2                      {
- 106   3                                      digitaltube_fixed(6,freq_adjust/100);
- 107   3                                      digitaltube_fixed(7,freq_adjust%100/10);
- 108   3                                      digitaltube_fixed(8,freq_adjust%10);
- 109   3                              
+ 106   3                              digitaltube_fixed(5,freq/1000);
+ 107   3                              digitaltube_fixed(6,freq%1000/100);
+ 108   3                              digitaltube_fixed(7,freq%100/10);
+ 109   3                              digitaltube_fixed(8,freq%10);
  110   3                      }
- 111   2                      else if(freq_adjust<0)
+ 111   2                      else if(freq/100!=0)
  112   2                      {
- 113   3                              int tem_dat;
- 114   3                              tem_dat=0-freq_adjust;
- 115   3                              digital_tube(5,0xBF);//-
- 116   3                              digitaltube_fixed(6,tem_dat/100);
-C51 COMPILER V9.57.0.0   MAIN                                                              03/28/2026 15:26:02 PAGE 3   
+ 113   3                              digitaltube_fixed(6,freq/100);
+ 114   3                              digitaltube_fixed(7,freq%100/10);
+ 115   3                              digitaltube_fixed(8,freq%10);
+ 116   3                      }
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 3   
 
- 117   3                              digitaltube_fixed(7,tem_dat%100/10);
- 118   3                              digitaltube_fixed(8,tem_dat%10);
- 119   3                      }
- 120   2                      else
- 121   2                      {
- 122   3                              digitaltube_fixed(8,freq_adjust);
- 123   3                      }
- 124   2      
- 125   2              }
- 126   1      }
- 127          
- 128          
- 129          void page_back_display()
- 130          {
- 131   1              digital_tube(1,0x89);//H
- 132   1              if(page_back_count==0)
- 133   1              {
- 134   2                      digitaltube_fixed(2,15);
- 135   2                      if(freq_max/10000!=0)
- 136   2                      {
- 137   3                              digitaltube_fixed(4,freq_max/10000);
- 138   3                              digitaltube_fixed(5,freq_max%10000/1000);
- 139   3                              digitaltube_fixed(6,freq_max%1000/100);
- 140   3                              digitaltube_fixed(7,freq_max%100/10);
- 141   3                              digitaltube_fixed(8,freq_max%10);
- 142   3                      }
- 143   2                      else if(freq_max/1000!=0)
- 144   2                      {
- 145   3                              digitaltube_fixed(5,freq_max/1000);
- 146   3                              digitaltube_fixed(6,freq_max%1000/100);
- 147   3                              digitaltube_fixed(7,freq_max%100/10);
- 148   3                              digitaltube_fixed(8,freq_max%10);
- 149   3                      }
- 150   2                      else if(freq_max/100!=0)
- 151   2                      {
- 152   3                              digitaltube_fixed(6,freq_max/100);
- 153   3                              digitaltube_fixed(7,freq_max%100/10);
- 154   3                              digitaltube_fixed(8,freq_max%10);
+ 117   2                      else if(freq/10!=0)
+ 118   2                      {
+ 119   3                              digitaltube_fixed(7,freq/10);
+ 120   3                              digitaltube_fixed(8,freq%10);
+ 121   3                      }
+ 122   2                      else 
+ 123   2                      {
+ 124   3                              digitaltube_fixed(8,freq/10);
+ 125   3                      }
+ 126   2              }
+ 127   1              else
+ 128   1              {
+ 129   2                      digital_tube(7,0xC7);//L
+ 130   2                      digital_tube(8,0xC7);
+ 131   2              }
+ 132   1              
+ 133   1      }
+ 134          
+ 135          void page_para_display()
+ 136          {
+ 137   1              digital_tube(1,0x8C);//P
+ 138   1              if(page_para_count==0)
+ 139   1              {
+ 140   2                      digitaltube_fixed(2,1);
+ 141   2                      digitaltube_fixed(5,freq_ex/1000);
+ 142   2                      digitaltube_fixed(6,freq_ex%1000/100);
+ 143   2                      digitaltube_fixed(7,freq_ex%100/10);
+ 144   2                      digitaltube_fixed(8,freq_ex%10);
+ 145   2              }
+ 146   1              else
+ 147   1              {
+ 148   2                      digitaltube_fixed(2,2);
+ 149   2                      if(freq_adjust>0)
+ 150   2                      {
+ 151   3                                      digitaltube_fixed(6,freq_adjust/100);
+ 152   3                                      digitaltube_fixed(7,freq_adjust%100/10);
+ 153   3                                      digitaltube_fixed(8,freq_adjust%10);
+ 154   3                              
  155   3                      }
- 156   2                      else if(freq_max/100!=0)
+ 156   2                      else if(freq_adjust<0)
  157   2                      {
- 158   3                              digitaltube_fixed(7,freq_max/10);
- 159   3                              digitaltube_fixed(8,freq_max%10);
- 160   3                      }
- 161   2                      else if(freq_max/10!=0)
- 162   2                      {
- 163   3                              digitaltube_fixed(8,freq_max/10);
+ 158   3                              int tem_dat;
+ 159   3                              tem_dat=0-freq_adjust;
+ 160   3                              digital_tube(5,0xBF);//-
+ 161   3                              digitaltube_fixed(6,tem_dat/100);
+ 162   3                              digitaltube_fixed(7,tem_dat%100/10);
+ 163   3                              digitaltube_fixed(8,tem_dat%10);
  164   3                      }
- 165   2              }
- 166   1              else
- 167   1              {
- 168   2                      digitaltube_fixed(2,10);
- 169   2              }
- 170   1      }
- 171          void page_time_display()
- 172          {
- 173   1              digitaltube_fixed(1,hour/10);
- 174   1              digitaltube_fixed(2,hour%10);
- 175   1              digital_tube(3,0xBF);//-
- 176   1              digitaltube_fixed(4,min/10);
- 177   1              digitaltube_fixed(5,min%10);
- 178   1              digital_tube(6,0xBF);
-C51 COMPILER V9.57.0.0   MAIN                                                              03/28/2026 15:26:02 PAGE 4   
+ 165   2                      else
+ 166   2                      {
+ 167   3                              digitaltube_fixed(8,freq_adjust);
+ 168   3                      }
+ 169   2      
+ 170   2              }
+ 171   1      }
+ 172          
+ 173          
+ 174          void page_back_display()
+ 175          {
+ 176   1              digital_tube(1,0x89);//H
+ 177   1              if(page_back_count==0)
+ 178   1              {
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 4   
 
- 179   1              digitaltube_fixed(7,sec/10);
- 180   1              digitaltube_fixed(8,sec%10);
- 181   1      }
- 182          void main()
- 183          {
- 184   1              init();
- 185   1              DS1302_write();
- 186   1              while(1)
- 187   1              {
- 188   2                      read_time();
- 189   2                      page_time_display();
- 190   2              }
- 191   1      }
+ 179   2                      digitaltube_fixed(2,15);
+ 180   2                      if(freq_max/10000!=0)
+ 181   2                      {
+ 182   3                              digitaltube_fixed(4,freq_max/10000);
+ 183   3                              digitaltube_fixed(5,freq_max%10000/1000);
+ 184   3                              digitaltube_fixed(6,freq_max%1000/100);
+ 185   3                              digitaltube_fixed(7,freq_max%100/10);
+ 186   3                              digitaltube_fixed(8,freq_max%10);
+ 187   3                      }
+ 188   2                      else if(freq_max/1000!=0)
+ 189   2                      {
+ 190   3                              digitaltube_fixed(5,freq_max/1000);
+ 191   3                              digitaltube_fixed(6,freq_max%1000/100);
+ 192   3                              digitaltube_fixed(7,freq_max%100/10);
+ 193   3                              digitaltube_fixed(8,freq_max%10);
+ 194   3                      }
+ 195   2                      else if(freq_max/100!=0)
+ 196   2                      {
+ 197   3                              digitaltube_fixed(6,freq_max/100);
+ 198   3                              digitaltube_fixed(7,freq_max%100/10);
+ 199   3                              digitaltube_fixed(8,freq_max%10);
+ 200   3                      }
+ 201   2                      else if(freq_max/100!=0)
+ 202   2                      {
+ 203   3                              digitaltube_fixed(7,freq_max/10);
+ 204   3                              digitaltube_fixed(8,freq_max%10);
+ 205   3                      }
+ 206   2                      else if(freq_max/10!=0)
+ 207   2                      {
+ 208   3                              digitaltube_fixed(8,freq_max/10);
+ 209   3                      }
+ 210   2              }
+ 211   1              else
+ 212   1              {
+ 213   2                      digitaltube_fixed(2,10);
+ 214   2              }
+ 215   1      }
+ 216          void page_time_display()
+ 217          {
+ 218   1              digitaltube_fixed(1,hour/10);
+ 219   1              digitaltube_fixed(2,hour%10);
+ 220   1              digital_tube(3,0xBF);//-
+ 221   1              digitaltube_fixed(4,min/10);
+ 222   1              digitaltube_fixed(5,min%10);
+ 223   1              digital_tube(6,0xBF);
+ 224   1              digitaltube_fixed(7,sec/10);
+ 225   1              digitaltube_fixed(8,sec%10);
+ 226   1      }
+ 227          void main()
+ 228          {
+ 229   1              init();
+ 230   1              Timer_Init();
+ 231   1              while(1)
+ 232   1              {
+ 233   2                      get_freq_real();
+ 234   2                      page_freq_display();
+ 235   2              }
+ 236   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    959    ----
+   CODE SIZE        =   1222    ----
+C51 COMPILER V9.57.0.0   MAIN                                                              03/29/2026 14:40:14 PAGE 5   
+
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     16       2
+   DATA SIZE        =     21       2
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.

@@ -17,12 +17,14 @@
 #define page_back_freq 0
 #define page_back_time 1
 
+unsigned int t0_count;
+unsigned char gate_10ms = 0;
 
 unsigned char page_count=page_freq;
 unsigned char page_para_count=page_para_p1;
 unsigned char page_back_count=page_back_freq;
 
-int freq=0;
+long freq=0;
 unsigned int freq_real=0;
 unsigned int freq_ex=2000;
 int freq_adjust=0;
@@ -32,6 +34,49 @@ unsigned char min;
 unsigned char sec;
 
 unsigned int freq_max=0;
+
+void get_freq_real()
+{
+	EA=0;
+	freq_real=t0_count*10;
+	EA=1;
+}
+
+void Timer1_Isr(void) interrupt 3
+{
+	gate_10ms++;
+
+    if(gate_10ms >= 10)
+    {
+        gate_10ms = 0;
+
+        TR0 = 0;
+        t0_count = ((unsigned int)TH0 << 8) | TL0;
+        TH0 = 0;
+        TL0 = 0;
+        TR0 = 1;
+    }
+}
+
+void Timer_Init(void)		//10毫秒@12.000MHz
+{
+	AUXR &= 0x00;			//定时器时钟12T模式
+	TMOD = 0x04;			//设置定时器模式
+	TL1 = 0xF0;				//设置定时初1始值
+	TH1 = 0xD8;				//设置定时1初始值
+	
+	TL0 = 0x00;
+	TH0 = 0x00;
+	
+	TF1 = 0;				//清除TF1标志
+	TF0 = 0;
+	
+	TR1 = 1;				//定时器1开始计时
+	TR0 = 1;
+	
+	ET1 = 1;				//使能定时器1中断
+	EA = 1;
+}
 
 void read_time()
 {
@@ -69,12 +114,12 @@ void page_freq_display()
 			digitaltube_fixed(7,freq%100/10);
 			digitaltube_fixed(8,freq%10);
 		}
-		else if(freq/100!=0)
+		else if(freq/10!=0)
 		{
 			digitaltube_fixed(7,freq/10);
 			digitaltube_fixed(8,freq%10);
 		}
-		else if(freq/10!=0)
+		else 
 		{
 			digitaltube_fixed(8,freq/10);
 		}
@@ -182,10 +227,10 @@ void page_time_display()
 void main()
 {
 	init();
-	DS1302_write();
+	Timer_Init();
 	while(1)
 	{
-		read_time();
-		page_time_display();
+		get_freq_real();
+		page_freq_display();
 	}
 }
