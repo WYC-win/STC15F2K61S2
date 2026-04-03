@@ -36,7 +36,7 @@ unsigned int get_distance()
 	else
 	{
 		time=(CH<<8)|CL;
-		return (time*0.0172);
+		return (time*0.0172)+3.3024;
 	}
 	
 }

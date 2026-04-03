@@ -9,6 +9,7 @@
 ".\Objects\iic.obj",
 ".\Objects\onewire.obj",
 ".\Objects\ds18b20.obj",
-".\Objects\superwave.obj" 
+".\Objects\superwave.obj",
+".\Objects\AD.obj" 
 TO ".\Objects\project" 
 PRINT(".\Listings\project.m51") RAMSIZE(256) 

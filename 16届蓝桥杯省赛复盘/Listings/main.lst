@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              04/02/2026 21:34:07 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -19,34 +19,355 @@ line level    source
    9          #include "delay.h"
   10          #include "ds18b20.h"
   11          #include "superwave.h"
-  12          unsigned int dis,i;
-  13          
-  14          void main()
-  15          {
-  16   1              init();
-  17   1              
-  18   1              while(1)
-  19   1              {
-  20   2                      dis=get_distance();
-  21   2                      for(i=0;i<200;i++)
-  22   2                      {
-  23   3                              digitaltube_fixed(1,dis/100);
-  24   3                              digitaltube_fixed(2,dis%100/10);
-  25   3                              digitaltube_fixed(3,dis%10);
-  26   3                      }
-  27   2                      
-  28   2              }
-  29   1      }
+  12          #include "AD.h"
+  13          #define page_environment 0
+  14          #define page_sport 1
+  15          #define page_para 2
+  16          #define page_summary 3
+  17          
+  18          #define page_para_temprature 0
+  19          #define page_para_distance 1
+  20          
+  21          unsigned char page_count=0;
+  22          unsigned char page_para_count=0;
+  23          
+  24          unsigned char para_temprature=30;
+  25          unsigned char para_distance=30;
+  26          
+  27          unsigned char key_number;
+  28          unsigned char light_level;
+  29          unsigned int super_distance;
+  30          unsigned char temperature;
+  31          unsigned char sport_state;
+  32          unsigned int last_super_distance=0;
+  33          unsigned int distance_change=0;
+  34          
+  35          
+  36          unsigned int summary=0;
+  37          
+  38          bit hightemp_flag=0;
+  39          bit close_flag=0;
+  40          bit relay_report=0;
+  41          
+  42          volatile unsigned int key_double_ms=0;
+  43          volatile unsigned char getdistance_ms=0;
+  44          volatile unsigned char gettemprature_ms=0;
+  45          volatile unsigned char getlightlevel_ms=0;
+  46          volatile unsigned int judge_sportstate_ms=0;
+  47          volatile unsigned char LED_out_ms=0;
+  48          
+  49          void Timer_Init(void)           //10毫秒@12.000MHz
+  50          {
+  51   1              AUXR = 0x00 ;                   //定时器时钟12T模式
+  52   1              TMOD &= 0xF0;                   //设置定时器模式
+  53   1              TL0 = 0xF0;                             //设置定时初始值
+  54   1              TH0 = 0xD8;                             //设置定时初始值
+C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 2   
+
+  55   1              
+  56   1      //      TL1 = 0x18;                             //设置定时初始值
+  57   1      //      TH1 = 0xFC;                             //设置定时初始值
+  58   1      //      TF1 = 0;                                //清除TF1标志
+  59   1      //      TR1 = 1;                                //定时器1开始计时
+  60   1      //      ET1 = 1;                                //使能定时器1中断
+  61   1      
+  62   1              
+  63   1              TF0 = 0;                                //清除TF0标志
+  64   1              TR0 = 1;                                //定时器0开始计时
+  65   1              ET0 = 1;                                //使能定时器0中断
+  66   1              EA=1;
+  67   1      }
+  68          
+  69          
+  70          void page_environment_display()
+  71          {
+  72   1              digitaltube_fixed(1,12);
+  73   1              digitaltube(7,0xc8);
+  74   1              digitaltube_fixed(2,temperature/10);
+  75   1              digitaltube_fixed(3,temperature%10);
+  76   1              digitaltube_fixed(8,light_level);
+  77   1      }
+  78          
+  79          void page_sport_display()
+  80          {
+  81   1              digitaltube(1,0xc7);
+  82   1              digitaltube_fixed(6,super_distance/100);
+  83   1              digitaltube_fixed(7,super_distance%100/10);
+  84   1              digitaltube_fixed(8,super_distance%10);
+  85   1              digitaltube_fixed(2,sport_state);
+  86   1      }
+  87          
+  88          void page_para_display()
+  89          {
+  90   1              digitaltube(1,0x8C);
+  91   1              switch(page_para_count)
+  92   1              {
+  93   2                      case 0: digitaltube_fixed(2,12);
+  94   2                                      digitaltube_fixed(7,para_temprature/10);
+  95   2                                      digitaltube_fixed(8,para_temprature%10);
+  96   2                                      break;
+  97   2                      case 1: digitaltube(2,0xc7);
+  98   2                                      digitaltube_fixed(7,para_distance/10);
+  99   2                                      digitaltube_fixed(8,para_distance%10);
+ 100   2                                      break;
+ 101   2              }
+ 102   1      }
+ 103          void page_summary_display()
+ 104          {
+ 105   1              digitaltube(1,0xc8);
+ 106   1              digitaltube_fixed(2,12);
+ 107   1              if(summary/1000!=0)
+ 108   1              {
+ 109   2                      digitaltube_fixed(5,summary/1000);
+ 110   2                      digitaltube_fixed(6,summary%1000/100);
+ 111   2                      digitaltube_fixed(7,summary%100/10);
+ 112   2                      digitaltube_fixed(8,summary%10);
+ 113   2              }
+ 114   1              if(summary/100!=0)
+ 115   1              {
+ 116   2                      digitaltube_fixed(6,summary/100);
+C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 3   
+
+ 117   2                      digitaltube_fixed(7,summary%100/10);
+ 118   2                      digitaltube_fixed(8,summary%10);
+ 119   2              }
+ 120   1              if(summary/10!=0)
+ 121   1              {
+ 122   2                      digitaltube_fixed(7,summary/10);
+ 123   2                      digitaltube_fixed(8,summary%10);
+ 124   2              }
+ 125   1              if(summary/10==0)
+ 126   1              {
+ 127   2                      digitaltube_fixed(8,summary);
+ 128   2              }
+ 129   1      }
+ 130          
+ 131          void relay_out()
+ 132          {
+ 133   1              if(hightemp_flag==1 && close_flag==1)
+ 134   1              {
+ 135   2                      P0=0x10;
+ 136   2                      if(relay_report==0)
+ 137   2                      {
+ 138   3                              summary++;
+ 139   3                              relay_report=1;
+ 140   3                      }
+ 141   2              }
+ 142   1              else
+ 143   1              {
+ 144   2                      P0=0x00;
+ 145   2                      relay_report=0;
+ 146   2              }
+ 147   1              latch(5);
+ 148   1              
+ 149   1      }
+ 150          void LED_out()
+ 151          {
+ 152   1              P0=0xFF;
+ 153   1              if(close_flag==1)
+ 154   1              {
+ 155   2                      if(light_level==1)
+ 156   2                      {
+ 157   3                              P0&=0xFE;
+ 158   3                      }
+ 159   2                      if(light_level==2)
+ 160   2                      {
+ 161   3                              P0&=0xFC;
+ 162   3                      }
+ 163   2                      if(light_level==3)
+ 164   2                      {
+ 165   3                              P0&=0xF8;
+ 166   3                      }
+ 167   2                      if(light_level==4)
+ 168   2                      {
+ 169   3                              P0&=0xF0;
+ 170   3                      }
+ 171   2              }
+ 172   1              else
+ 173   1              {
+ 174   2                      P0&=0xFF;
+ 175   2              }
+ 176   1              if(sport_state==1)
+ 177   1              {
+ 178   2                      P0&=0xFF;
+C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 4   
+
+ 179   2              }
+ 180   1              if(sport_state==2)
+ 181   1              {
+ 182   2                      P0&=0x7F;
+ 183   2              }
+ 184   1              if(sport_state==3)
+ 185   1              {
+ 186   2                      if(LED_out_ms<10)P0&=0x7F;
+ 187   2              }
+ 188   1              latch(4);
+ 189   1      }
+ 190          unsigned char judge_sport_state()
+ 191          {
+ 192   1              if(last_super_distance>=super_distance)
+ 193   1              {
+ 194   2                      distance_change=last_super_distance-super_distance;
+ 195   2              }
+ 196   1              else
+ 197   1              {
+ 198   2                      distance_change=super_distance-last_super_distance;
+ 199   2              }
+ 200   1              if(distance_change>=10) return 3;
+ 201   1              if(distance_change>=5) return 2;
+ 202   1              else return 1;
+ 203   1      }
+ 204          void Timer0_Isr(void) interrupt 1
+ 205          {
+ 206   1              LED_out_ms++;
+ 207   1              if(LED_out_ms==20)LED_out_ms=0;
+ 208   1              judge_sportstate_ms++;
+ 209   1              getdistance_ms++;
+ 210   1              gettemprature_ms++;
+ 211   1              getlightlevel_ms++;
+ 212   1              if(page_count==3&&key_double_back(8)&&key_double_back(9))
+ 213   1              {
+ 214   2                              key_double_ms++;
+ 215   2                              if(key_number==4)key_double_ms=0;
+ 216   2                              if(key_double_ms>200)
+ 217   2                              {
+ 218   3                                      summary=0;
+ 219   3                                      key_double_ms=0;
+ 220   3                              }
+ 221   2              }
+ 222   1              key_number=key_back();
+ 223   1              if(key_number==4)
+ 224   1              {
+ 225   2                      page_count++;
+ 226   2                      page_para_count=0;
+ 227   2                      if(page_count>3)page_count=0;
+ 228   2              }
+ 229   1              if(page_count==2)
+ 230   1              {
+ 231   2                      if(key_number==5)
+ 232   2                      {
+ 233   3                              page_para_count++;
+ 234   3                              if(page_para_count>1)
+ 235   3                              {
+ 236   4                                      page_para_count=0;
+ 237   4                              }
+ 238   3                      }
+ 239   2                      if(page_para_count==0)
+ 240   2                      {
+C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 5   
+
+ 241   3                              if(key_number==8)
+ 242   3                              {
+ 243   4                                      if(para_temprature<=79)
+ 244   4                                              para_temprature++;
+ 245   4                                      else
+ 246   4                                              para_temprature=80;
+ 247   4                              }
+ 248   3                              if(key_number==9)
+ 249   3                              {
+ 250   4                                      if(para_temprature>=21)
+ 251   4                                              para_temprature--;
+ 252   4                                      else
+ 253   4                                              para_temprature=20;
+ 254   4                              }       
+ 255   3                      }
+ 256   2                      if(page_para_count==1)
+ 257   2                      {
+ 258   3                              if(key_number==8)
+ 259   3                              {
+ 260   4                                      if(para_distance<=75)
+ 261   4                                              para_distance+=5;
+ 262   4                                      else
+ 263   4                                              para_distance=80;
+ 264   4                              }
+ 265   3                              if(key_number==9)
+ 266   3                              {
+ 267   4                                      if(para_distance>=25)
+ 268   4                                              para_distance-=5;
+ 269   4                                      else
+ 270   4                                              para_distance=20;
+ 271   4                              }       
+ 272   3                      }
+ 273   2              }
+ 274   1      }
+ 275          
+ 276          
+ 277          void main()
+ 278          {
+ 279   1              init();
+ 280   1              ds18b20_convertT();
+ 281   1              delay(750);
+ 282   1              super_distance=get_distance();
+ 283   1              last_super_distance=super_distance;
+ 284   1              temperature=ds18b20_readT();
+ 285   1              light_level=AD_read(0x01);
+ 286   1              Timer_Init();
+ 287   1              while(1)
+ 288   1              {
+ 289   2                      if(super_distance<para_distance)
+ 290   2                      {
+ 291   3                              close_flag=1;
+ 292   3                      }
+ 293   2                      else close_flag=0;
+ 294   2                      if(temperature>para_temprature)
+ 295   2                      {
+ 296   3                              hightemp_flag=1;
+ 297   3                      }
+ 298   2                      else hightemp_flag=0;
+ 299   2                      if(getdistance_ms>100)
+ 300   2                      {
+ 301   3                              last_super_distance=super_distance;
+ 302   3                              super_distance=get_distance();
+C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 6   
+
+ 303   3                              if(judge_sportstate_ms>300)
+ 304   3                              {
+ 305   4                                      sport_state=judge_sport_state();
+ 306   4                                      judge_sportstate_ms=0;
+ 307   4                              }
+ 308   3                              getdistance_ms=0;
+ 309   3                      }
+ 310   2                      if(gettemprature_ms>10)
+ 311   2                      {
+ 312   3                              ds18b20_convertT();
+ 313   3                              temperature=ds18b20_readT();
+ 314   3                              gettemprature_ms=0;
+ 315   3                      }
+ 316   2                      if(getlightlevel_ms>10)
+ 317   2                      {
+ 318   3                              light_level=AD_read(0x01);
+ 319   3                              getlightlevel_ms=0;
+ 320   3                      }
+ 321   2                      LED_out();
+ 322   2                      relay_out();
+ 323   2                      if(page_count==page_environment)
+ 324   2                      {
+ 325   3                              page_environment_display();
+ 326   3                      }
+ 327   2                      else if(page_count==page_sport)
+ 328   2                      {
+ 329   3                              page_sport_display();
+ 330   3                      }
+ 331   2                      else if(page_count==page_para)
+ 332   2                      {
+ 333   3                              page_para_display();
+ 334   3                      }
+ 335   2                      else
+ 336   2                      {
+ 337   3                              page_summary_display();
+ 338   3                      }
+ 339   2              }
+ 340   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     99    ----
+   CODE SIZE        =   1116    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      4    ----
+   DATA SIZE        =     24    ----
    IDATA SIZE       =   ----    ----
-   BIT SIZE         =   ----    ----
+   BIT SIZE         =      3    ----
 END OF MODULE INFORMATION.
 
 

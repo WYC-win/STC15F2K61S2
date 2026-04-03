@@ -1,0 +1,52 @@
+C51 COMPILER V9.57.0.0   AD                                                                04/03/2026 21:48:38 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE AD
+OBJECT MODULE PLACED IN .\Objects\AD.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE AD.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\AD.lst
+                    -) OBJECT(.\Objects\AD.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "iic.h"
+   3          unsigned char AD_read(unsigned char AD_chanel)
+   4          {
+   5   1              unsigned char light_temp;
+   6   1              float light_level;
+   7   1              I2CStart();
+   8   1              I2CSendByte(0x90);
+   9   1              I2CWaitAck();
+  10   1              I2CSendByte(AD_chanel);
+  11   1              I2CWaitAck();
+  12   1              I2CStop();
+  13   1              
+  14   1              I2CStart();
+  15   1              I2CSendByte(0x91);
+  16   1              I2CWaitAck();
+  17   1              light_temp=I2CReceiveByte();
+  18   1              I2CSendAck(1);
+  19   1              I2CStop();
+  20   1              light_level=light_temp/51.0;
+  21   1              if(light_level>=3)return 1;
+  22   1              if(light_level>=2)return 2;
+  23   1              if(light_level>=0.5)return 3;
+  24   1              else return 4;
+  25   1              
+  26   1              
+  27   1              
+  28   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    142    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
