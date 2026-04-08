@@ -1,0 +1,49 @@
+C51 COMPILER V9.57.0.0   AD                                                                04/08/2026 21:34:18 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE AD
+OBJECT MODULE PLACED IN .\Objects\AD.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE AD.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\AD.lst
+                    -) OBJECT(.\Objects\AD.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "iic.h"
+   3          
+   4          float get_ain3(void)
+   5          {
+   6   1              unsigned char ain3=0,rubbish=0;
+   7   1              float voltage_ain3=0.0;
+   8   1              I2CStart();
+   9   1              I2CSendByte(0x90);
+  10   1              I2CWaitAck();
+  11   1              I2CSendByte(0x03);
+  12   1              I2CWaitAck();
+  13   1              I2CStop();
+  14   1              
+  15   1              I2CStart();
+  16   1              I2CSendByte(0x91);
+  17   1              I2CWaitAck();
+  18   1              rubbish=I2CReceiveByte();
+  19   1              I2CSendAck(0);
+  20   1              ain3=I2CReceiveByte();
+  21   1              I2CSendAck(1);
+  22   1              I2CStop();
+  23   1              voltage_ain3=ain3/51.0;
+  24   1              return voltage_ain3;
+  25   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     81    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

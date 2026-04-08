@@ -1,0 +1,91 @@
+C51 COMPILER V9.57.0.0   DIGITALTUBE                                                       04/08/2026 21:34:18 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE DIGITALTUBE
+OBJECT MODULE PLACED IN .\Objects\digitaltube.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE digitaltube.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listin
+                    -gs\digitaltube.lst) OBJECT(.\Objects\digitaltube.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "latch.h"
+   3          #include "delay.h"
+   4          code unsigned char tube_number_fixed[16]={0xC0 ,0xF9, 0xA4 ,0xB0 ,0x99 ,0x92 ,0x82,0xF8 ,0x80 ,0x90 ,0x88 
+             -,0x83 ,0xC6 ,0xA1 ,0x86 ,0x8E};
+   5          void digitaltube_fixed(unsigned char tube_position,unsigned char tube_number)
+   6          {
+   7   1              switch(tube_position)
+   8   1              {
+   9   2                      case 1: P0=0x01;break;
+  10   2                      case 2: P0=0x02;break;
+  11   2                      case 3: P0=0x04;break;
+  12   2                      case 4: P0=0x08;break;
+  13   2                      case 5: P0=0x10;break;
+  14   2                      case 6: P0=0x20;break;
+  15   2                      case 7: P0=0x40;break;
+  16   2                      case 8: P0=0x80;break;
+  17   2              }
+  18   1              latch(6);
+  19   1              P0=tube_number_fixed[tube_number];
+  20   1              latch(7);
+  21   1              delay(2);
+  22   1              P0=0xFF;
+  23   1              latch(7);
+  24   1      }
+  25          void digitaltube(unsigned char tube_position,unsigned char tube_number)
+  26          {
+  27   1              switch(tube_position)
+  28   1              {
+  29   2                      case 1: P0=0x01;break;
+  30   2                      case 2: P0=0x02;break;
+  31   2                      case 3: P0=0x04;break;
+  32   2                      case 4: P0=0x08;break;
+  33   2                      case 5: P0=0x10;break;
+  34   2                      case 6: P0=0x20;break;
+  35   2                      case 7: P0=0x40;break;
+  36   2                      case 8: P0=0x80;break;
+  37   2              }
+  38   1              latch(6);
+  39   1              P0=tube_number;
+  40   1              latch(7);
+  41   1              delay(2);
+  42   1              P0=0xFF;
+  43   1              latch(7);
+  44   1      }
+  45          void digitaltube_fixed_dp(unsigned char tube_position,unsigned char tube_number)
+  46          {
+  47   1              switch(tube_position)
+  48   1              {
+  49   2                      case 1: P0=0x01;break;
+  50   2                      case 2: P0=0x02;break;
+  51   2                      case 3: P0=0x04;break;
+  52   2                      case 4: P0=0x08;break;
+  53   2                      case 5: P0=0x10;break;
+C51 COMPILER V9.57.0.0   DIGITALTUBE                                                       04/08/2026 21:34:18 PAGE 2   
+
+  54   2                      case 6: P0=0x20;break;
+  55   2                      case 7: P0=0x40;break;
+  56   2                      case 8: P0=0x80;break;
+  57   2              }
+  58   1              latch(6);
+  59   1              P0=tube_number_fixed[tube_number]&0x7F;
+  60   1              latch(7);
+  61   1              delay(2);
+  62   1              P0=0xFF;
+  63   1              latch(7);
+  64   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    351    ----
+   CONSTANT SIZE    =     16    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

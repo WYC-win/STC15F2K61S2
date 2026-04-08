@@ -1,0 +1,94 @@
+C51 COMPILER V9.57.0.0   KBD                                                               04/08/2026 21:34:18 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE KBD
+OBJECT MODULE PLACED IN .\Objects\kbd.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE kbd.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\kbd.l
+                    -st) OBJECT(.\Objects\kbd.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          sbit row4=P3^3;sbit row3=P3^2;sbit row2=P3^1;sbit row1=P3^0;
+   3          sbit col4=P3^4;sbit col3=P3^5;sbit col2=P4^2;sbit col1=P4^4;
+   4          unsigned char kbd()
+   5          {
+   6   1              unsigned char keynumber=0;
+   7   1              static unsigned char last_keynumber=0;
+   8   1              static unsigned char reported=0;
+   9   1              static unsigned char stable_count=0;
+  10   1              row4=1;row3=1;row2=1;row1=1;
+  11   1              col4=1;col3=1;col2=1;col1=1;
+  12   1              row4=0;
+  13   1              if(col1==0)keynumber=4;
+  14   1              if(col2==0)keynumber=8;
+  15   1              if(col3==0)keynumber=12;
+  16   1              if(col4==0)keynumber=16;
+  17   1              
+  18   1              row4=1;row3=1;row2=1;row1=1;
+  19   1              col4=1;col3=1;col2=1;col1=1;
+  20   1              row3=0;
+  21   1              if(col1==0)keynumber=5;
+  22   1              if(col2==0)keynumber=9;
+  23   1              if(col3==0)keynumber=13;
+  24   1              if(col4==0)keynumber=17;
+  25   1              
+  26   1              row4=1;row3=1;row2=1;row1=1;
+  27   1              col4=1;col3=1;col2=1;col1=1;
+  28   1              row2=0;
+  29   1              if(col1==0)keynumber=6;
+  30   1              if(col2==0)keynumber=10;
+  31   1              if(col3==0)keynumber=14;
+  32   1              if(col4==0)keynumber=18;
+  33   1              
+  34   1              row4=1;row3=1;row2=1;row1=1;
+  35   1              col4=1;col3=1;col2=1;col1=1;
+  36   1              row1=0;
+  37   1              if(col1==0)keynumber=7;
+  38   1              if(col2==0)keynumber=11;
+  39   1              if(col3==0)keynumber=15;
+  40   1              if(col4==0)keynumber=19;
+  41   1              
+  42   1              if(last_keynumber==keynumber)
+  43   1              {
+  44   2                      if(stable_count<3)stable_count++;
+  45   2              }
+  46   1              else
+  47   1              {
+  48   2                      last_keynumber=keynumber;
+  49   2                      stable_count=0;
+  50   2              }
+  51   1              
+  52   1              if(stable_count==3)
+  53   1              {
+  54   2                      if(keynumber!=0 && reported==0)
+C51 COMPILER V9.57.0.0   KBD                                                               04/08/2026 21:34:18 PAGE 2   
+
+  55   2                      {
+  56   3                              reported=1;
+  57   3                              return keynumber;
+  58   3                      }
+  59   2                      if(keynumber==0)
+  60   2                      {
+  61   3                              reported=0;
+  62   3                              return 0;
+  63   3                      }
+  64   2              }
+  65   1              return 0;
+  66   1      
+  67   1      }
+  68                  
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    202    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
