@@ -231,7 +231,7 @@
               <RCB>
                 <Type>0</Type>
                 <StartAddress>0x0</StartAddress>
-                <Size>0x10000</Size>
+                <Size>0xffff</Size>
               </RCB>
               <RXB>
                 <Type>0</Type>
@@ -365,9 +365,134 @@
           <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
+              <FileName>STARTUP.A51</FileName>
+              <FileType>2</FileType>
+              <FilePath>.\STARTUP.A51</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>latch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\latch.c</FilePath>
+            </File>
+            <File>
+              <FileName>latch.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\latch.h</FilePath>
+            </File>
+            <File>
+              <FileName>init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\init.c</FilePath>
+            </File>
+            <File>
+              <FileName>init.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\init.h</FilePath>
+            </File>
+            <File>
+              <FileName>digitaltube.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\digitaltube.c</FilePath>
+            </File>
+            <File>
+              <FileName>digitaltube.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\digitaltube.h</FilePath>
+            </File>
+            <File>
+              <FileName>kbd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\kbd.c</FilePath>
+            </File>
+            <File>
+              <FileName>kbd.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\kbd.h</FilePath>
+            </File>
+            <File>
+              <FileName>delay.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\delay.c</FilePath>
+            </File>
+            <File>
+              <FileName>delay.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\delay.h</FilePath>
+            </File>
+            <File>
+              <FileName>ds1302.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\ds1302.c</FilePath>
+            </File>
+            <File>
+              <FileName>iic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\iic.c</FilePath>
+            </File>
+            <File>
+              <FileName>onewire.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\onewire.c</FilePath>
+            </File>
+            <File>
+              <FileName>ds1302.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\ds1302.h</FilePath>
+            </File>
+            <File>
+              <FileName>iic.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\iic.h</FilePath>
+            </File>
+            <File>
+              <FileName>onewire.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\onewire.h</FilePath>
+            </File>
+            <File>
+              <FileName>ds18b20.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\ds18b20.c</FilePath>
+            </File>
+            <File>
+              <FileName>ds18b20.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\ds18b20.h</FilePath>
+            </File>
+            <File>
+              <FileName>AD_DA.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\AD_DA.c</FilePath>
+            </File>
+            <File>
+              <FileName>AD_DA.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\AD_DA.h</FilePath>
+            </File>
+            <File>
+              <FileName>at24c02.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\at24c02.c</FilePath>
+            </File>
+            <File>
+              <FileName>at24c02.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\at24c02.h</FilePath>
+            </File>
+            <File>
+              <FileName>superwave.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\superwave.c</FilePath>
+            </File>
+            <File>
+              <FileName>superwave.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\superwave.h</FilePath>
             </File>
           </Files>
         </Group>

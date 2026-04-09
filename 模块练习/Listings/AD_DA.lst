@@ -1,0 +1,59 @@
+C51 COMPILER V9.57.0.0   AD_DA                                                             04/09/2026 18:05:24 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE AD_DA
+OBJECT MODULE PLACED IN .\Objects\AD_DA.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE AD_DA.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\AD_
+                    -DA.lst) OBJECT(.\Objects\AD_DA.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "iic.h"
+   3          
+   4          float AD_read(unsigned char addr)
+   5          {
+   6   1              unsigned char rubbish,temp;
+   7   1              I2CStart();
+   8   1              I2CSendByte(0x90);
+   9   1              I2CWaitAck();
+  10   1              I2CSendByte(addr);
+  11   1              I2CWaitAck();
+  12   1              I2CStop();
+  13   1              
+  14   1              I2CStart();
+  15   1              I2CSendByte(0x91);
+  16   1              I2CWaitAck();
+  17   1              rubbish=I2CReceiveByte();
+  18   1              I2CSendAck(0);
+  19   1          temp=I2CReceiveByte();
+  20   1              I2CSendAck(1);
+  21   1              I2CStop();
+  22   1              return (float)temp/51.0;
+  23   1      }
+  24          
+  25          void DA_out(unsigned char out_vol)
+  26          {
+  27   1              I2CStart();
+  28   1              I2CSendByte(0x90);
+  29   1              I2CWaitAck();
+  30   1              I2CSendByte(0x40);
+  31   1              I2CWaitAck();
+  32   1              I2CSendByte(out_vol);
+  33   1              I2CWaitAck();
+  34   1              I2CStop();
+  35   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    106    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

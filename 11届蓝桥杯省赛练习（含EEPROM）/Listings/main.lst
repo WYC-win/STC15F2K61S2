@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              04/08/2026 21:34:18 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/09/2026 14:00:48 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -62,7 +62,7 @@ line level    source
   52   2                      digitaltube_fixed(7,summary_count%100/10);
   53   2                      digitaltube_fixed(8,summary_count%10);
   54   2              }
-C51 COMPILER V9.57.0.0   MAIN                                                              04/08/2026 21:34:18 PAGE 2   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/09/2026 14:00:48 PAGE 2   
 
   55   1              else if(summary_count/100000!=0)
   56   1              {
@@ -106,173 +106,177 @@ line level    source
   94   1      }
   95          void Timer0_Isr(void) interrupt 1
   96          {
-  97   1              if(voltage_data<voltage_para)
-  98   1              {
-  99   2                      L1_ms++;
- 100   2              }
- 101   1              else
- 102   1              {
- 103   2                      L1_ms=0;
- 104   2              }
- 105   1              
- 106   1              if(voltage_data>voltage_para)
- 107   1              {
- 108   2                      high=1;
- 109   2                      low=0;
+  97   1              key_back=kbd();
+  98   1              if(page_count==1)
+  99   1              {
+ 100   2                      if(key_back==12)
+ 101   2                      {
+ 102   3                              at24c02_flag=1;
+ 103   3                              data_at24c02[0]=(char)(voltage_para*10);
+ 104   3                      }
+ 105   2              }
+ 106   1                              
+ 107   1              if(voltage_data<voltage_para)
+ 108   1              {
+ 109   2                      L1_ms++;
  110   2              }
- 111   1              if(high==1)
+ 111   1              else
  112   1              {
- 113   2                      if(voltage_data<voltage_para)
- 114   2                      {
- 115   3                              low=1;
- 116   3                              summary_count++;
-C51 COMPILER V9.57.0.0   MAIN                                                              04/08/2026 21:34:18 PAGE 3   
+ 113   2                      L1_ms=0;
+ 114   2              }
+ 115   1              
+ 116   1              if(voltage_data>voltage_para)
+C51 COMPILER V9.57.0.0   MAIN                                                              04/09/2026 14:00:48 PAGE 3   
 
- 117   3                              high=0;
- 118   3                      }
- 119   2              }
- 120   1              get_data_ms++;
- 121   1              key_back=kbd();
- 122   1              if(key_back!=12 && key_back!=13 && key_back!=16 && key_back!=17 && key_back!=0)
- 123   1              {
- 124   2                      wrong_key_count++;
- 125   2              }
- 126   1              if(key_back==12 || key_back==13 || key_back==16 || key_back==17)
- 127   1              {
- 128   2                      wrong_key_count=0;
+ 117   1              {
+ 118   2                      high=1;
+ 119   2                      low=0;
+ 120   2              }
+ 121   1              if(high==1)
+ 122   1              {
+ 123   2                      if(voltage_data<voltage_para)
+ 124   2                      {
+ 125   3                              low=1;
+ 126   3                              summary_count++;
+ 127   3                              high=0;
+ 128   3                      }
  129   2              }
- 130   1              if(key_back==12)
- 131   1              {
- 132   2                      page_count++;
- 133   2                      if(page_count>2)
- 134   2                      {
- 135   3                              page_count=0;
- 136   3                      }
- 137   2              }
- 138   1              if(page_count==2)
- 139   1              {
- 140   2                      if(key_back==13)
- 141   2                      {
- 142   3                              summary_count=0;
- 143   3                      }
- 144   2                      if(key_back==12)
- 145   2                      {
- 146   3                              at24c02_flag=1;
- 147   3                              data_at24c02[0]=(char)(voltage_para*10);
- 148   3                      }
- 149   2              }
- 150   1              if(page_count==1)
- 151   1              {
- 152   2                      if(key_back==16)
- 153   2                      {
- 154   3                              if(voltage_para<5.0)
- 155   3                              {
- 156   4                                      voltage_para+=0.5;
- 157   4                              }
- 158   3                              
- 159   3                              else
- 160   3                              {
- 161   4                                      voltage_para=0.00;
- 162   4                              }
- 163   3                      }
- 164   2                      else if(key_back==17)
- 165   2                      {
- 166   3                              if(voltage_para>0.0)
- 167   3                              {
- 168   4                                      voltage_para-=0.5;
- 169   4                              }
- 170   3                              else
+ 130   1              get_data_ms++;
+ 131   1              if(key_back!=12 && key_back!=13 && key_back!=16 && key_back!=17 && key_back!=0)
+ 132   1              {
+ 133   2                      wrong_key_count++;
+ 134   2              }
+ 135   1              if(key_back==12 || key_back==13 || key_back==16 || key_back==17)
+ 136   1              {
+ 137   2                      wrong_key_count=0;
+ 138   2              }
+ 139   1              if(key_back==12)
+ 140   1              {
+ 141   2                      page_count++;
+ 142   2                      if(page_count>2)
+ 143   2                      {
+ 144   3                              page_count=0;
+ 145   3                      }
+ 146   2              }
+ 147   1              if(page_count==2)
+ 148   1              {
+ 149   2                      if(key_back==13)
+ 150   2                      {
+ 151   3                              summary_count=0;
+ 152   3                      }
+ 153   2              }
+ 154   1              if(page_count==1)
+ 155   1              {
+ 156   2                      if(key_back==16)
+ 157   2                      {
+ 158   3                              if(voltage_para<5.0)
+ 159   3                              {
+ 160   4                                      voltage_para+=0.5;
+ 161   4                              }
+ 162   3                              
+ 163   3                              else
+ 164   3                              {
+ 165   4                                      voltage_para=0.00;
+ 166   4                              }
+ 167   3                      }
+ 168   2                      else if(key_back==17)
+ 169   2                      {
+ 170   3                              if(voltage_para>0.0)
  171   3                              {
- 172   4                                      voltage_para=5.0;
+ 172   4                                      voltage_para-=0.5;
  173   4                              }
- 174   3                      }
- 175   2              }
- 176   1      }
- 177          
- 178          void led_out()
-C51 COMPILER V9.57.0.0   MAIN                                                              04/08/2026 21:34:18 PAGE 4   
+ 174   3                              else
+ 175   3                              {
+ 176   4                                      voltage_para=5.0;
+ 177   4                              }
+ 178   3                      }
+C51 COMPILER V9.57.0.0   MAIN                                                              04/09/2026 14:00:48 PAGE 4   
 
- 179          {
- 180   1              P0=0xFF;
- 181   1              if(L1_ms>500)
- 182   1              {
- 183   2                      P0&=0xFE;
- 184   2              }
- 185   1              else
+ 179   2              }
+ 180   1      }
+ 181          
+ 182          void led_out()
+ 183          {
+ 184   1              P0=0xFF;
+ 185   1              if(L1_ms>500)
  186   1              {
- 187   2                      P0&=0xFF;
+ 187   2                      P0&=0xFE;
  188   2              }
- 189   1              if(summary_count%2!=0)
+ 189   1              else
  190   1              {
- 191   2                      P0&=0xFD;
+ 191   2                      P0&=0xFF;
  192   2              }
- 193   1              else
+ 193   1              if(summary_count%2!=0)
  194   1              {
- 195   2                      P0&=0xFF;
+ 195   2                      P0&=0xFD;
  196   2              }
- 197   1              if(wrong_key_count>3)
+ 197   1              else
  198   1              {
- 199   2                      P0&=0xFB;
+ 199   2                      P0&=0xFF;
  200   2              }
- 201   1              else
+ 201   1              if(wrong_key_count>=3)
  202   1              {
- 203   2                      P0&=0xFF;
+ 203   2                      P0&=0xFB;
  204   2              }
- 205   1              latch(4);
- 206   1      }
- 207          void Timer0_Init(void)          //10毫秒@12.000MHz
- 208          {
- 209   1              AUXR &= 0x7F;                   //定时器时钟12T模式
- 210   1              TMOD &= 0xF0;                   //设置定时器模式
- 211   1              TL0 = 0xF0;                             //设置定时初始值
- 212   1              TH0 = 0xD8;                             //设置定时初始值
- 213   1              TF0 = 0;                                //清除TF0标志
- 214   1              TR0 = 1;                                //定时器0开始计时
- 215   1              ET0 = 1;                                //使能定时器0中断
- 216   1              EA=1;
- 217   1      }
- 218          
- 219          
- 220          void main()
- 221          {
- 222   1              init();
- 223   1              Timer0_Init();
- 224   1              at24c02_read(data_at24c02,0,1);
- 225   1              voltage_para=(float)data_at24c02[0]*1.0/10;
- 226   1              while(1)
- 227   1              {
- 228   2                      led_out();
- 229   2                      if(at24c02_flag==1)
- 230   2                      {
- 231   3                              at24c02_write(data_at24c02,0,1);
- 232   3                              at24c02_flag=0;
- 233   3                      }
- 234   2                      if(get_data_ms>5)
- 235   2                      {
- 236   3                              voltage_data=get_ain3();
- 237   3                              get_data_ms=0;
- 238   3                      }
- 239   2                      if(page_count==page_data)
- 240   2                      {
-C51 COMPILER V9.57.0.0   MAIN                                                              04/08/2026 21:34:18 PAGE 5   
+ 205   1              else
+ 206   1              {
+ 207   2                      P0&=0xFF;
+ 208   2              }
+ 209   1              latch(4);
+ 210   1      }
+ 211          void Timer0_Init(void)          //10毫秒@12.000MHz
+ 212          {
+ 213   1              AUXR &= 0x7F;                   //定时器时钟12T模式
+ 214   1              TMOD &= 0xF0;                   //设置定时器模式
+ 215   1              TL0 = 0xF0;                             //设置定时初始值
+ 216   1              TH0 = 0xD8;                             //设置定时初始值
+ 217   1              TF0 = 0;                                //清除TF0标志
+ 218   1              TR0 = 1;                                //定时器0开始计时
+ 219   1              ET0 = 1;                                //使能定时器0中断
+ 220   1              EA=1;
+ 221   1      }
+ 222          
+ 223          
+ 224          void main()
+ 225          {
+ 226   1              init();
+ 227   1              Timer0_Init();
+ 228   1              at24c02_read(data_at24c02,0,1);
+ 229   1              voltage_para=(float)data_at24c02[0]*1.0/10;
+ 230   1              while(1)
+ 231   1              {
+ 232   2                      led_out();
+ 233   2                      if(at24c02_flag==1)
+ 234   2                      {
+ 235   3                              at24c02_write(data_at24c02,0,1);
+ 236   3                              at24c02_flag=0;
+ 237   3                      }
+ 238   2                      if(get_data_ms>5)
+ 239   2                      {
+ 240   3                              voltage_data=get_ain3();
+C51 COMPILER V9.57.0.0   MAIN                                                              04/09/2026 14:00:48 PAGE 5   
 
- 241   3                              page_data_display();
+ 241   3                              get_data_ms=0;
  242   3                      }
- 243   2                      else if(page_count==page_para)
+ 243   2                      if(page_count==page_data)
  244   2                      {
- 245   3                              page_para_display();
+ 245   3                              page_data_display();
  246   3                      }
- 247   2                      else
+ 247   2                      else if(page_count==page_para)
  248   2                      {
- 249   3                              page_summary_display();
+ 249   3                              page_para_display();
  250   3                      }
- 251   2              }
- 252   1      
- 253   1      }
+ 251   2                      else
+ 252   2                      {
+ 253   3                              page_summary_display();
+ 254   3                      }
+ 255   2              }
+ 256   1      
+ 257   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1364    ----
+   CODE SIZE        =   1369    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----

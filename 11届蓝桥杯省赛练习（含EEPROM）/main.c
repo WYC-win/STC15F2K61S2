@@ -94,6 +94,16 @@ void page_summary_display()
 }
 void Timer0_Isr(void) interrupt 1
 {
+	key_back=kbd();
+	if(page_count==1)
+	{
+		if(key_back==12)
+		{
+			at24c02_flag=1;
+			data_at24c02[0]=(char)(voltage_para*10);
+		}
+	}
+			
 	if(voltage_data<voltage_para)
 	{
 		L1_ms++;
@@ -118,7 +128,6 @@ void Timer0_Isr(void) interrupt 1
 		}
 	}
 	get_data_ms++;
-	key_back=kbd();
 	if(key_back!=12 && key_back!=13 && key_back!=16 && key_back!=17 && key_back!=0)
 	{
 		wrong_key_count++;
@@ -140,11 +149,6 @@ void Timer0_Isr(void) interrupt 1
 		if(key_back==13)
 		{
 			summary_count=0;
-		}
-		if(key_back==12)
-		{
-			at24c02_flag=1;
-			data_at24c02[0]=(char)(voltage_para*10);
 		}
 	}
 	if(page_count==1)
@@ -194,7 +198,7 @@ void led_out()
 	{
 		P0&=0xFF;
 	}
-	if(wrong_key_count>3)
+	if(wrong_key_count>=3)
 	{
 		P0&=0xFB;
 	}

@@ -1,0 +1,16 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\latch.obj",
+".\Objects\init.obj",
+".\Objects\digitaltube.obj",
+".\Objects\kbd.obj",
+".\Objects\delay.obj",
+".\Objects\ds1302.obj",
+".\Objects\iic.obj",
+".\Objects\onewire.obj",
+".\Objects\ds18b20.obj",
+".\Objects\AD_DA.obj",
+".\Objects\at24c02.obj",
+".\Objects\superwave.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
