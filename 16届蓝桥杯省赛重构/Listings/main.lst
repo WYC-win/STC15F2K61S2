@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/11/2026 19:24:07 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -62,7 +62,7 @@ line level    source
   52   1              TMOD &= 0xF0;                   //设置定时器模式
   53   1              TL0 = 0xF0;                             //设置定时初始值
   54   1              TH0 = 0xD8;                             //设置定时初始值
-C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 2   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/11/2026 19:24:07 PAGE 2   
 
   55   1              
   56   1      //      TL1 = 0x18;                             //设置定时初始值
@@ -126,7 +126,7 @@ line level    source
  114   1              if(summary/100!=0)
  115   1              {
  116   2                      digitaltube_fixed(6,summary/100);
-C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 3   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/11/2026 19:24:07 PAGE 3   
 
  117   2                      digitaltube_fixed(7,summary%100/10);
  118   2                      digitaltube_fixed(8,summary%10);
@@ -190,7 +190,7 @@ line level    source
  176   1              if(sport_state==1)
  177   1              {
  178   2                      P0&=0xFF;
-C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 4   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/11/2026 19:24:07 PAGE 4   
 
  179   2              }
  180   1              if(sport_state==2)
@@ -254,7 +254,7 @@ line level    source
  238   3                      }
  239   2                      if(page_para_count==0)
  240   2                      {
-C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 5   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/11/2026 19:24:07 PAGE 5   
 
  241   3                              if(key_number==8)
  242   3                              {
@@ -318,7 +318,7 @@ line level    source
  300   2                      {
  301   3                              last_super_distance=super_distance;
  302   3                              super_distance=get_distance();
-C51 COMPILER V9.57.0.0   MAIN                                                              04/03/2026 21:48:37 PAGE 6   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/11/2026 19:24:07 PAGE 6   
 
  303   3                              if(judge_sportstate_ms>300)
  304   3                              {

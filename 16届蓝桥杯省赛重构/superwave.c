@@ -19,7 +19,7 @@ unsigned int get_distance()
 	CMOD=0x01;
 	CCON=0x00;
 	CH=0x00;CL=0x00;
-	for(i=0;i<8;i++)
+	for(i=0;i<5;i++)
 	{
 		TX=1;
 		Delay12us();
@@ -36,7 +36,7 @@ unsigned int get_distance()
 	else
 	{
 		time=(CH<<8)|CL;
-		return (time*0.0172)+3.3024;
+		return (time*0.017);
 	}
 	
 }

@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              04/10/2026 20:15:52 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/11/2026 19:31:49 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -16,21 +16,21 @@ line level    source
    6          #include "delay.h"
    7          #include "ds18b20.h"
    8          #include "ds1302.h"
-   9          //#include <stdio.h>
-  10          void main()
-  11          {
-  12   1              init();
-  13   1      
-  14   1              while(1)
-  15   1              {
-  16   2                      printf("a");
+   9          #include "superwave.h"
+  10          
+  11          void main()
+  12          {
+  13   1              
+  14   1              init();
+  15   1              while(1)
+  16   1              {
   17   2              }
   18   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     14    ----
-   CONSTANT SIZE    =      2    ----
+   CODE SIZE        =      5    ----
+   CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----

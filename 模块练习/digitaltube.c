@@ -62,7 +62,7 @@ void digitaltube_DP(unsigned char digital_position,unsigned char digital_number)
 	
 	P0=digitaltube_seg[digital_number]&0x7F;
 	latch(7);
-	delay(2);
+	delay(1);
 	P0=0xFF;
 	latch(7);
 }

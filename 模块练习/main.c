@@ -6,12 +6,13 @@
 #include "delay.h"
 #include "ds18b20.h"
 #include "ds1302.h"
+#include "superwave.h"
+
 void main()
 {
+	
 	init();
-
 	while(1)
 	{
-		
 	}
 }

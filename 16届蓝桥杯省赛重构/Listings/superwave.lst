@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   SUPERWAVE                                                         04/03/2026 21:48:37 PAGE 1   
+C51 COMPILER V9.57.0.0   SUPERWAVE                                                         04/11/2026 19:24:08 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE SUPERWAVE
@@ -29,7 +29,7 @@ line level    source
   19   1              CMOD=0x01;
   20   1              CCON=0x00;
   21   1              CH=0x00;CL=0x00;
-  22   1              for(i=0;i<8;i++)
+  22   1              for(i=0;i<5;i++)
   23   1              {
   24   2                      TX=1;
   25   2                      Delay12us();
@@ -46,14 +46,14 @@ line level    source
   36   1              else
   37   1              {
   38   2                      time=(CH<<8)|CL;
-  39   2                      return (time*0.0172)+3.3024;
+  39   2                      return (time*0.017);
   40   2              }
   41   1              
   42   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     97    ----
+   CODE SIZE        =     86    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
