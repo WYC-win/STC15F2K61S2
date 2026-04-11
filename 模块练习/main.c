@@ -6,13 +6,12 @@
 #include "delay.h"
 #include "ds18b20.h"
 #include "ds1302.h"
-//#include <stdio.h>
 void main()
 {
 	init();
 
 	while(1)
 	{
-		printf("a");
+		
 	}
 }
