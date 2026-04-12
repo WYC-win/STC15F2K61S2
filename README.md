@@ -1,4 +1,4 @@
-# 蓝桥杯单片机备赛工程
+<h1 align="center">蓝桥杯单片机备赛工程</h1>
 
 <p align="center">
   <img alt="MCU" src="https://img.shields.io/badge/MCU-STC15F2K61S2-1f6feb">
