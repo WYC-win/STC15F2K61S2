@@ -16,7 +16,7 @@ unsigned char uart_send[20];
 
 void Uart1_Isr(void) interrupt 4
 {
-	if (RI==1)				//检测串口1接收中断
+	if (RI==1)				//?????1?????ж?
 	{
 		uart_receive[uart_receive_index]=SBUF;
 //		uart_receive_index++;

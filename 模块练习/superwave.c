@@ -18,6 +18,7 @@ unsigned int get_distance()
 	CMOD=0x01;
 	CCON=0x00;
 	CH=0x00;CL=0x00;
+	CR=1;
 	for(i=0;i<5;i++)
 	{
 		TX=1;
@@ -25,7 +26,6 @@ unsigned int get_distance()
 		TX=0;
 		Delay12us();
 	}
-	CR=1;
 	while(RX==1 && CH<0x40);
 	CR=0;
 	if(CH>=0x40)return 0;

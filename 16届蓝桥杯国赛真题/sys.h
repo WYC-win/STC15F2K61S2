@@ -6,4 +6,5 @@ void init();
 void digitaltube_fix(unsigned char tube_position,unsigned char tube_number,bit dp);
 void digitaltube(unsigned char tube_position,unsigned char tube_number,bit dp);
 unsigned char key_back();
+float get_distance();
 #endif

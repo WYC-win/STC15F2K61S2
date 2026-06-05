@@ -2,6 +2,7 @@
 
 sbit row1=P3^0;sbit row2=P3^1;sbit row3=P3^2;sbit row4=P3^3;
 sbit col1=P4^4;sbit col2=P4^2;sbit col3=P3^5;
+sbit RX=P1^1;sbit TX=P1^0;
 
 code unsigned char digitaltube_seg[16]={0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90, 0x88, 0x83, 0xC6, 0xA1, 0x86, 0x8E};
 void latch(unsigned char HC38);
@@ -62,7 +63,7 @@ void digitaltube_fix(unsigned char tube_position,unsigned char tube_number,bit d
 	latch(6);
 	if(dp)
 	{
-		P0=digitaltube_seg[tube_number]|0x80;
+		P0=digitaltube_seg[tube_number]&0x7F;
 	}
 	else
 	{
@@ -93,7 +94,7 @@ void digitaltube(unsigned char tube_position,unsigned char tube_number,bit dp)
 	latch(6);
 	if(dp)
 	{
-		P0=tube_number|0x80;
+		P0=tube_number&0x7F;
 	}
 	else
 	{
@@ -167,4 +168,54 @@ unsigned char key_back()
 		}
 	}
 	return 0;
+}
+
+void Delay12us(void)	//@12.000MHz
+{
+	unsigned char data i;
+
+	_nop_();
+	_nop_();
+	i = 33;
+	while (--i);
+}
+
+
+float get_distance()
+{
+	unsigned int time;
+	unsigned i;
+	CMOD=0x01;
+	CCON=0x00;
+	CH=0x00;CL=0x00;
+	CR=1;
+	for(i=0;i<5;i++)
+	{
+		TX=1;
+		Delay12us();
+		TX=0;
+		Delay12us();
+	}
+	
+	while(RX==1 && CH<0x40);
+	CR=0;
+	if(CH>=0x40)return 0;
+	else
+	{
+		time=((int)(CH<<8)|CL);
+		return time*0.017;
+	}
+}
+
+void uart_send_byte(unsigned char dat)
+{
+	SBUF=dat;
+	while(TI==0);
+	TI=0;
+}
+
+void uart_send_string(unsigned char *dat)
+{
+	while(*dat!='\0')
+		uart_send_byte(*dat++);
 }

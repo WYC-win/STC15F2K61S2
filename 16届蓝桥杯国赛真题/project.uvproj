@@ -231,7 +231,7 @@
               <RCB>
                 <Type>0</Type>
                 <StartAddress>0x0</StartAddress>
-                <Size>0x10000</Size>
+                <Size>0xffff</Size>
               </RCB>
               <RXB>
                 <Type>0</Type>
@@ -383,6 +383,36 @@
               <FileName>sys.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\sys.h</FilePath>
+            </File>
+            <File>
+              <FileName>ds1302.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\ds1302.c</FilePath>
+            </File>
+            <File>
+              <FileName>iic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\iic.c</FilePath>
+            </File>
+            <File>
+              <FileName>onewire.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\onewire.c</FilePath>
+            </File>
+            <File>
+              <FileName>iic.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\iic.h</FilePath>
+            </File>
+            <File>
+              <FileName>ds1302.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\ds1302.h</FilePath>
+            </File>
+            <File>
+              <FileName>onewire.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\onewire.h</FilePath>
             </File>
           </Files>
         </Group>
