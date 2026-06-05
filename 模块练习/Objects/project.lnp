@@ -11,6 +11,7 @@
 ".\Objects\ds18b20.obj",
 ".\Objects\AD_DA.obj",
 ".\Objects\at24c02.obj",
-".\Objects\superwave.obj" 
+".\Objects\superwave.obj",
+".\Objects\uart.obj" 
 TO ".\Objects\project" 
 PRINT(".\Listings\project.m51") RAMSIZE(256) 
