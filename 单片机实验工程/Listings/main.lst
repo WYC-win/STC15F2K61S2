@@ -1,0 +1,658 @@
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*
+   2           *  实验三：IAP15F2K61S2单片机综合实验
+   3           *  显示：LCD1602（替换数码管）
+   4           *  日期：2026.6.6
+   5           */
+   6          
+   7          #include <STC15F2K60S2.H>
+   8          #include "LCD1602.h"
+   9          #include "latch.h"
+  10          #include "kbd.h"
+  11          #include "iic.h"
+  12          #include "AD_DA.h"
+  13          
+  14          //==================== 状态定义 ====================
+  15          #define state_main      0
+  16          #define state_led       1
+  17          #define state_uart_menu 2
+  18          #define state_uart_send 3
+  19          #define state_uart_recv 4
+  20          #define state_da_menu   5
+  21          #define state_da_saw    6
+  22          #define state_da_tri    7
+  23          #define state_da_sin    8
+  24          
+  25          //==================== 按键映射 ====================
+  26          // 矩阵位置→返回值:
+  27          //       col1 col2 col3 col4
+  28          // row1   7   11   15   19
+  29          // row2   6   10   14   18
+  30          // row3   5    9   13   17
+  31          // row4   4    8   12   16
+  32          //
+  33          // 功能分配:
+  34          // S4(4)=INT0  S5(5)=BACK  S6(6)=0/+
+  35          // S8(8)=1     S9(9)=4     S11(11)=7
+  36          // S12(12)=2   S13(13)=5   S15(15)=8
+  37          // S16(16)=3   S17(17)=6   S19(19)=9
+  38          // S7(7)未用  S10(10)未用  S14(14)未用  S18(18)未用
+  39          #define KEY_INT0   4       // S4: LED间隔递减
+  40          #define KEY_BACK   5       // S5: 返回主菜单
+  41          #define KEY_0      6       // S6: 数字0(UART) / 频率+(DA)
+  42          #define KEY_DOWN   7       // S7: 频率-
+  43          #define KEY_1      8       // S8: 菜单1 / 数字1
+  44          #define KEY_4      9       // S9: 数字4
+  45          #define KEY_7     11       // S11: 数字7
+  46          #define KEY_2     12       // S12: 菜单2 / 数字2
+  47          #define KEY_5     13       // S13: 数字5
+  48          #define KEY_8     15       // S15: 数字8
+  49          #define KEY_3     16       // S16: 菜单3 / 数字3
+  50          #define KEY_6     17       // S17: 数字6
+  51          #define KEY_9     19       // S19: 数字9
+  52          #define KEY_UP     KEY_0    // S6: 频率+（同KEY_0）
+  53          
+  54          //==================== 正弦波64点查找表 ====================
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 2   
+
+  55          unsigned char code sin_tab[64] = {
+  56              128,140,153,165,177,188,199,209,
+  57              218,226,234,240,245,250,253,254,
+  58              255,254,253,250,245,240,234,226,
+  59              218,209,199,188,177,165,153,140,
+  60              128,116,103, 91, 79, 68, 57, 47,
+  61               38, 30, 22, 16, 11,  6,  3,  2,
+  62                1,  2,  3,  6, 11, 16, 22, 30,
+  63               38, 47, 57, 68, 79, 91,103,116
+  64          };
+  65          
+  66          //==================== 全局变量 ====================
+  67          unsigned char page_count;            // 系统状态
+  68          unsigned int  led_interval;          // LED点亮间隔(ms)
+  69          unsigned int  led_tick;              // LED时基计数(ms)
+  70          unsigned char led_pattern;           // LED当前亮灯位
+  71          unsigned int  da_freq;               // DA输出频率(Hz)
+  72          unsigned char da_index;              // DA查表索引
+  73          unsigned char da_val;                // DA当前输出值
+  74          unsigned char rx_buf[28];            // 串口接收缓冲(27字符+结束符)
+  75          unsigned char rx_index;              // 接收缓冲索引
+  76          unsigned char refresh_count;         // LCD刷新计数
+  77          unsigned int  rx_idle_cnt;           // 串口空闲计数(新数据清屏用)
+  78          bit da_flag;                         // DA更新标志（ISR→主循环）
+  79          
+  80          //==================== 函数声明 ====================
+  81          void init(void);
+  82          void Uart1_Init(void);
+  83          void uart_send_byte(unsigned char dat);
+  84          void uart_send_string(char *str);
+  85          void uart_send_num(unsigned int num);
+  86          void Timer0_LED_Init(void);
+  87          void Timer0_DA_Init(unsigned int us);
+  88          void show_main_menu(void);
+  89          void led_mode(void);
+  90          void uart_mode(void);
+  91          void da_mode(void);
+  92          
+  93          //==================== 系统初始化 ====================
+  94          void init(void)
+  95          {
+  96   1          P0 = 0xFF;
+  97   1          latch(4);       // 熄灭LED
+  98   1          P0 = 0x00;
+  99   1          latch(5);       // 关闭蜂鸣器/继电器
+ 100   1      }
+ 101          
+ 102          //==================== UART初始化 ====================
+ 103          //==================== 串口中断（含接收处理） ====================
+ 104          void Uart1_Isr(void) interrupt 4
+ 105          {
+ 106   1          unsigned char ch;
+ 107   1      
+ 108   1          if(RI)
+ 109   1          {
+ 110   2               RI = 0;
+ 111   2              ch = SBUF;
+ 112   2      
+ 113   2              if(page_count == state_uart_recv)
+ 114   2              {
+ 115   3                  if(ch >= 0x20 && ch < 0x7F)
+ 116   3                  {
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 3   
+
+ 117   4                      // 空闲超时 → 新消息，清旧数据
+ 118   4                      if(rx_idle_cnt >= 60000)
+ 119   4                      {
+ 120   5                          rx_index = 0;
+ 121   5                          rx_buf[0] = '\0';
+ 122   5                      }
+ 123   4                      rx_idle_cnt = 0;
+ 124   4      
+ 125   4                      if(rx_index < 27)
+ 126   4                      {
+ 127   5                          rx_buf[rx_index++] = ch;
+ 128   5                          rx_buf[rx_index] = '\0';
+ 129   5                      }
+ 130   4                      else
+ 131   4                      {
+ 132   5                          unsigned char j;
+ 133   5                          for(j = 0; j < 26; j++)
+ 134   5                              rx_buf[j] = rx_buf[j + 1];
+ 135   5                          rx_buf[26] = ch;
+ 136   5                          rx_buf[27] = '\0';
+ 137   5                      }
+ 138   4                  }
+ 139   3              }
+ 140   2          }
+ 141   1          if(TI)
+ 142   1              TI = 0;
+ 143   1      }
+ 144          
+ 145          void Uart1_Init(void)   //9600bps@12.000MHz
+ 146          {
+ 147   1              SCON = 0x50;            //8位数据,可变波特率
+ 148   1              AUXR &= 0xBF;           //定时器时钟12T模式
+ 149   1              AUXR &= 0xFE;           //串口1选择定时器1为波特率发生器
+ 150   1              TMOD &= 0x0F;           //设置定时器模式
+ 151   1              TL1 = 0xE6;                     //设置定时初始值
+ 152   1              TH1 = 0xFF;                     //设置定时初始值
+ 153   1              ET1 = 0;                        //禁止定时器中断
+ 154   1              TR1 = 1;                        //定时器1开始计时
+ 155   1              ES = 1;                         //使能串口1中断
+ 156   1      }
+ 157          
+ 158          //==================== 串口发送 ====================
+ 159          void uart_send_byte(unsigned char dat)
+ 160          {
+ 161   1          SBUF = dat;
+ 162   1          while(TI == 0);
+ 163   1          TI = 0;
+ 164   1      }
+ 165          
+ 166          void uart_send_string(char *str)
+ 167          {
+ 168   1          while(*str != '\0')
+ 169   1              uart_send_byte(*str++);
+ 170   1      }
+ 171          
+ 172          void uart_send_num(unsigned int num)
+ 173          {
+ 174   1          uart_send_byte(num/1000%10 + '0');
+ 175   1          uart_send_byte(num/100%10 + '0');
+ 176   1          uart_send_byte(num/10%10 + '0');
+ 177   1          uart_send_byte(num%10 + '0');
+ 178   1      }
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 4   
+
+ 179          
+ 180          //==================== Timer0初始化(LED模式, 1ms时基) ====================
+ 181          void Timer0_LED_Init(void)      //1毫秒@12.000MHz
+ 182          {
+ 183   1          AUXR &= 0x7F;               //定时器时钟12T模式
+ 184   1          TMOD &= 0xF0;               //设置定时器模式
+ 185   1          TMOD |= 0x01;               //定时器0模式1(16位)
+ 186   1          TL0 = 0x18;                 //设置定时初始值 65536-1000=64536
+ 187   1          TH0 = 0xFC;
+ 188   1          TF0 = 0;                    //清除TF0标志
+ 189   1          TR0 = 1;                    //定时器0开始计时
+ 190   1          ET0 = 1;                    //使能定时器0中断
+ 191   1      }
+ 192          
+ 193          //==================== Timer0初始化(DA模式, us级间隔) ====================
+ 194          void Timer0_DA_Init(unsigned int us)
+ 195          {
+ 196   1          unsigned int ticks;
+ 197   1          ticks = 65536 - us;
+ 198   1      
+ 199   1          AUXR &= 0x7F;               //定时器时钟12T模式
+ 200   1          TMOD &= 0xF0;
+ 201   1          TMOD |= 0x01;               //定时器0模式1
+ 202   1          TL0 = ticks & 0xFF;
+ 203   1          TH0 = ticks >> 8;
+ 204   1          TF0 = 0;
+ 205   1          TR0 = 1;
+ 206   1          ET0 = 1;
+ 207   1      }
+ 208          
+ 209          //==================== 显示主菜单 ====================
+ 210          void show_main_menu(void)
+ 211          {
+ 212   1          LCD_Init();
+ 213   1          LCD_ShowString(1, 1, "1.LED  2.UART");
+ 214   1          LCD_ShowString(2, 1, "3.DA   Name  ID");
+ 215   1      }
+ 216          
+ 217          //==================== LED流水灯模式 ====================
+ 218          void led_mode(void)
+ 219          {
+ 220   1          unsigned char key;
+ 221   1      
+ 222   1          LCD_Init();
+ 223   1          LCD_ShowString(1, 1, "LED Run");
+ 224   1          LCD_ShowString(2, 1, "T=    ms");
+ 225   1      
+ 226   1          led_interval = 500;
+ 227   1          led_pattern  = 0xFE;
+ 228   1          led_tick     = 0;
+ 229   1          refresh_count = 0;
+ 230   1      
+ 231   1          P0 = led_pattern;           // 低电平亮：0xFE→LED1亮，其余灭
+ 232   1          latch(4);
+ 233   1          LCD_ShowNum(2, 3, led_interval, 3);
+ 234   1      
+ 235   1          Timer0_LED_Init();
+ 236   1          IT0 = 1;                    // INT0下降沿触发
+ 237   1          EX0 = 1;                    // 使能INT0
+ 238   1          EA  = 1;
+ 239   1      
+ 240   1          // 串口上报初始值
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 5   
+
+ 241   1          uart_send_string("LED T=");
+ 242   1          uart_send_num(led_interval);
+ 243   1          uart_send_string("ms\r\n");
+ 244   1      
+ 245   1          while(1)
+ 246   1          {
+ 247   2              key = key_back();
+ 248   2              if(key == KEY_BACK)
+ 249   2                  break;
+ 250   2      
+ 251   2              // S4按下：LED间隔递减（INT0功能）
+ 252   2              if(key == KEY_INT0)
+ 253   2              {
+ 254   3                  if(led_interval > 10)
+ 255   3                      led_interval -= 10;
+ 256   3                  else
+ 257   3                      led_interval = 500;
+ 258   3      
+ 259   3                  uart_send_string("T=");
+ 260   3                  uart_send_num(led_interval);
+ 261   3                  uart_send_string("ms\r\n");
+ 262   3      
+ 263   3                  LCD_ShowNum(2, 3, led_interval, 3);
+ 264   3                  led_tick = 0;
+ 265   3              }
+ 266   2      
+ 267   2              // 每500ms刷新LCD（refresh_count在ISR中1ms递增）
+ 268   2              if(refresh_count >= 500)
+ 269   2              {
+ 270   3                  refresh_count = 0;
+ 271   3                  LCD_ShowNum(2, 3, led_interval, 3);
+ 272   3              }
+ 273   2          }
+ 274   1      
+ 275   1          // 退出清理
+ 276   1          ET0 = 0;
+ 277   1          TR0 = 0;
+ 278   1          EX0 = 0;
+ 279   1          init();
+ 280   1      }
+ 281          
+ 282          //==================== 串口功能模式 ====================
+ 283          void uart_mode(void)
+ 284          {
+ 285   1          unsigned char key;
+ 286   1          unsigned char i;
+ 287   1      
+ 288   1          // 子菜单
+ 289   1          LCD_Init();
+ 290   1          LCD_ShowString(1, 1, "1.Send 2.Recv");
+ 291   1          LCD_ShowString(2, 1, "UART Test");
+ 292   1      
+ 293   1          while(1)
+ 294   1          {
+ 295   2              key = key_back();
+ 296   2              if(key == KEY_BACK)
+ 297   2              {
+ 298   3                  EA = 0;
+ 299   3                  ES = 0;
+ 300   3                  return;
+ 301   3              }
+ 302   2              if(key == KEY_1)
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 6   
+
+ 303   2              {
+ 304   3                  page_count = state_uart_send;
+ 305   3                  break;
+ 306   3              }
+ 307   2              if(key == KEY_2)
+ 308   2              {
+ 309   3                  page_count = state_uart_recv;
+ 310   3                  break;
+ 311   3              }
+ 312   2          }
+ 313   1      
+ 314   1          //===== 发送模式 =====
+ 315   1          if(page_count == state_uart_send)
+ 316   1          {
+ 317   2              LCD_Init();
+ 318   2              LCD_ShowString(1, 1, "Send: press 0-9");
+ 319   2              LCD_ShowString(2, 1, "Key:     ");
+ 320   2      
+ 321   2              REN = 0;            // 关闭接收，释放P3.1(RXD)避免干扰ROW2按键扫描
+ 322   2              EA = 1;
+ 323   2              ES = 1;
+ 324   2      
+ 325   2              while(1)
+ 326   2              {
+ 327   3                  key = key_back();
+ 328   3                  if(key == KEY_BACK)
+ 329   3                      break;
+ 330   3      
+ 331   3                  // 数字按键：8→1,12→2,16→3,9→4,13→5,17→6,11→7,15→8,19→9,6→0
+ 332   3                  if(key == KEY_1)        uart_send_byte('1');
+ 333   3                  else if(key == KEY_2)   uart_send_byte('2');
+ 334   3                  else if(key == KEY_3)   uart_send_byte('3');
+ 335   3                  else if(key == KEY_4)   uart_send_byte('4');
+ 336   3                  else if(key == KEY_5)   uart_send_byte('5');
+ 337   3                  else if(key == KEY_6)   uart_send_byte('6');
+ 338   3                  else if(key == KEY_7)   uart_send_byte('7');
+ 339   3                  else if(key == KEY_8)   uart_send_byte('8');
+ 340   3                  else if(key == KEY_9)   uart_send_byte('9');
+ 341   3                  else if(key == KEY_0)   uart_send_byte('0');
+ 342   3                  else continue;      // 非数字键，不刷新LCD
+ 343   3      
+ 344   3                  LCD_ShowChar(2, 5, '>');
+ 345   3                  LCD_ShowNum(2, 7, key, 2);
+ 346   3              }
+ 347   2              REN = 1;            // 恢复接收使能
+ 348   2          }
+ 349   1          //===== 接收模式 =====
+ 350   1          else if(page_count == state_uart_recv)
+ 351   1          {
+ 352   2              unsigned char rx_last = 0;
+ 353   2      
+ 354   2              rx_idle_cnt = 0;
+ 355   2              rx_index = 0;
+ 356   2              for(i = 0; i < 27; i++)
+ 357   2                  rx_buf[i] = '\0';
+ 358   2      
+ 359   2              LCD_Init();
+ 360   2              LCD_ShowString(1, 1, "Recv:           ");
+ 361   2              LCD_ShowString(2, 1, "                ");
+ 362   2      
+ 363   2              REN = 1;
+ 364   2              EA = 1;
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 7   
+
+ 365   2              ES = 1;
+ 366   2      
+ 367   2              while(1)
+ 368   2              {
+ 369   3                  // 只查S5，不碰P3.1/RXD
+ 370   3                  P44 = 0;
+ 371   3                  if(P32 == 0)
+ 372   3                  {
+ 373   4                      P44 = 1;
+ 374   4                      break;
+ 375   4                  }
+ 376   3                  P44 = 1;
+ 377   3      
+ 378   3                  // 空闲计数（ISR收到数据时清零）
+ 379   3                  if(rx_idle_cnt < 60000)
+ 380   3                      rx_idle_cnt++;
+ 381   3      
+ 382   3                  // 空闲超时 且 有新数据 → 一次性刷新LCD
+ 383   3                  if(rx_idle_cnt >= 60000 && rx_index != rx_last)
+ 384   3                  {
+ 385   4                      rx_last = rx_index;
+ 386   4                      ES = 0;
+ 387   4                      LCD_ShowString(1, 6, "           ");
+ 388   4                      LCD_ShowString(2, 1, "                ");
+ 389   4                      for(i = 0; i < rx_index && i < 11; i++)
+ 390   4                          LCD_ShowChar(1, 6 + i, rx_buf[i]);
+ 391   4                      if(rx_index > 11)
+ 392   4                      {
+ 393   5                          for(i = 11; i < rx_index && i < 27; i++)
+ 394   5                              LCD_ShowChar(2, i - 10, rx_buf[i]);
+ 395   5                      }
+ 396   4                      ES = 1;
+ 397   4                  }
+ 398   3              }
+ 399   2              ES = 0;
+ 400   2          }
+ 401   1      }
+ 402          
+ 403          //==================== DA转换模式 ====================
+ 404          void da_mode(void)
+ 405          {
+ 406   1          unsigned char key;
+ 407   1      
+ 408   1          // 子菜单
+ 409   1          LCD_Init();
+ 410   1          LCD_ShowString(1, 1, "1.Saw 2.Tri 3.Sin");
+ 411   1          LCD_ShowString(2, 1, "Select Wave");
+ 412   1      
+ 413   1          while(1)
+ 414   1          {
+ 415   2              key = key_back();
+ 416   2              if(key == KEY_BACK)
+ 417   2              {
+ 418   3                  ET0 = 0;
+ 419   3                  TR0 = 0;
+ 420   3                  DA_out(0);
+ 421   3                  init();
+ 422   3                  return;
+ 423   3              }
+ 424   2              if(key == KEY_1)
+ 425   2              {
+ 426   3                  page_count = state_da_saw;
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 8   
+
+ 427   3                  break;
+ 428   3              }
+ 429   2              if(key == KEY_2)
+ 430   2              {
+ 431   3                  page_count = state_da_tri;
+ 432   3                  break;
+ 433   3              }
+ 434   2              if(key == KEY_3)
+ 435   2              {
+ 436   3                  page_count = state_da_sin;
+ 437   3                  break;
+ 438   3              }
+ 439   2          }
+ 440   1      
+ 441   1          // 初始化DA
+ 442   1          da_freq = 100;
+ 443   1          da_index = 0;
+ 444   1          refresh_count = 0;
+ 445   1      
+ 446   1          LCD_Init();
+ 447   1          LCD_ShowString(2, 1, "F=    Hz UP/DN");
+ 448   1      
+ 449   1          if(page_count == state_da_saw)
+ 450   1              LCD_ShowString(1, 1, "Saw Wave");
+ 451   1          else if(page_count == state_da_tri)
+ 452   1              LCD_ShowString(1, 1, "Tri Wave");
+ 453   1          else
+ 454   1              LCD_ShowString(1, 1, "Sin Wave");
+ 455   1      
+ 456   1          LCD_ShowNum(2, 3, da_freq, 4);
+ 457   1      
+ 458   1          // 启动DA输出 (f=100Hz, 64点/周期, T_sample=1000000/6400=156us)
+ 459   1          Timer0_DA_Init(156);
+ 460   1          EA = 1;
+ 461   1      
+ 462   1          while(1)
+ 463   1          {
+ 464   2              // DA更新：ISR设标志，主循环执行I2C输出
+ 465   2              if(da_flag)
+ 466   2              {
+ 467   3                  da_flag = 0;
+ 468   3                  DA_out(da_val);
+ 469   3              }
+ 470   2      
+ 471   2              key = key_back();
+ 472   2              if(key == KEY_BACK)
+ 473   2                  break;
+ 474   2      
+ 475   2              // 频率调整
+ 476   2              if(key == KEY_UP)
+ 477   2              {
+ 478   3                  ET0 = 0;
+ 479   3                  if(da_freq < 1000) da_freq += 10;
+ 480   3                  Timer0_DA_Init(1000000UL / (64 * da_freq));
+ 481   3                  LCD_ShowNum(2, 3, da_freq, 4);
+ 482   3                  ET0 = 1;
+ 483   3              }
+ 484   2              else if(key == KEY_DOWN)
+ 485   2              {
+ 486   3                  ET0 = 0;
+ 487   3                  if(da_freq > 10) da_freq -= 10;
+ 488   3                  Timer0_DA_Init(1000000UL / (64 * da_freq));
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 9   
+
+ 489   3                  LCD_ShowNum(2, 3, da_freq, 4);
+ 490   3                  ET0 = 1;
+ 491   3              }
+ 492   2          }
+ 493   1      
+ 494   1          // 退出清理
+ 495   1          ET0 = 0;
+ 496   1          TR0 = 0;
+ 497   1          DA_out(0);
+ 498   1          init();
+ 499   1      }
+ 500          
+ 501          //==================== Timer0中断服务 ====================
+ 502          void Timer0_Isr(void) interrupt 1
+ 503          {
+ 504   1          unsigned int reload;
+ 505   1          unsigned char val;
+ 506   1      
+ 507   1          if(page_count == state_led)
+ 508   1          {
+ 509   2              // LED模式：1ms时基
+ 510   2              TL0 = 0x18;
+ 511   2              TH0 = 0xFC;
+ 512   2      
+ 513   2              led_tick++;
+ 514   2              refresh_count++;            // 1ms计数，用于LCD刷新
+ 515   2              if(led_tick >= led_interval)
+ 516   2              {
+ 517   3                  led_tick = 0;
+ 518   3                  // 跑马灯移位
+ 519   3                  if(led_pattern == 0x7F)
+ 520   3                      led_pattern = 0xFE;
+ 521   3                  else
+ 522   3                      led_pattern = (led_pattern << 1) | 0x01;
+ 523   3                  P0 = led_pattern;
+ 524   3                  latch(4);
+ 525   3              }
+ 526   2          }
+ 527   1          else if(page_count >= state_da_saw && page_count <= state_da_sin)
+ 528   1          {
+ 529   2              // DA模式：波形输出
+ 530   2              reload = 65536 - (1000000UL / (64 * da_freq));
+ 531   2              TL0 = reload & 0xFF;
+ 532   2              TH0 = reload >> 8;
+ 533   2      
+ 534   2              da_index++;
+ 535   2              if(da_index >= 64)
+ 536   2                  da_index = 0;
+ 537   2      
+ 538   2              if(page_count == state_da_saw)
+ 539   2                  val = da_index * 4;                     // 锯齿波
+ 540   2              else if(page_count == state_da_tri)
+ 541   2              {
+ 542   3                  if(da_index < 32)
+ 543   3                      val = da_index * 8;                 // 三角波上升
+ 544   3                  else
+ 545   3                      val = (63 - da_index) * 8;          // 三角波下降
+ 546   3              }
+ 547   2              else
+ 548   2                  val = sin_tab[da_index];                // 正弦波查表
+ 549   2      
+ 550   2              da_val = val;       // 传给主循环输出
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 10  
+
+ 551   2              da_flag = 1;
+ 552   2          }
+ 553   1      }
+ 554          
+ 555          //==================== INT0中断(LED间隔递减) ====================
+ 556          void INT0_Isr(void) interrupt 0
+ 557          {
+ 558   1          if(page_count == state_led)
+ 559   1          {
+ 560   2              if(led_interval > 10)
+ 561   2                  led_interval -= 10;
+ 562   2              else
+ 563   2                  led_interval = 500;
+ 564   2      
+ 565   2              // 串口上报
+ 566   2              uart_send_string("T=");
+ 567   2              uart_send_num(led_interval);
+ 568   2              uart_send_string("ms\r\n");
+ 569   2      
+ 570   2              // 同步LCD和LED节拍
+ 571   2              LCD_ShowNum(2, 3, led_interval, 3);
+ 572   2              led_tick = 0;
+ 573   2          }
+ 574   1      }
+ 575          
+ 576          //==================== 主函数 ====================
+ 577          void main()
+ 578          {
+ 579   1          unsigned char key;
+ 580   1      
+ 581   1          init();
+ 582   1          Uart1_Init();
+ 583   1          EA = 1;
+ 584   1      
+ 585   1          page_count = state_main;
+ 586   1          show_main_menu();
+ 587   1      
+ 588   1          while(1)
+ 589   1          {
+ 590   2              key = key_back();
+ 591   2      
+ 592   2              if(key == KEY_1)
+ 593   2              {
+ 594   3                  page_count = state_led;
+ 595   3                  led_mode();
+ 596   3                  page_count = state_main;
+ 597   3                  show_main_menu();
+ 598   3              }
+ 599   2              else if(key == KEY_2)
+ 600   2              {
+ 601   3                  page_count = state_uart_menu;
+ 602   3                  uart_mode();
+ 603   3                  page_count = state_main;
+ 604   3                  show_main_menu();
+ 605   3              }
+ 606   2              else if(key == KEY_3)
+ 607   2              {
+ 608   3                  page_count = state_da_menu;
+ 609   3                  da_mode();
+ 610   3                  page_count = state_main;
+ 611   3                  show_main_menu();
+ 612   3              }
+C51 COMPILER V9.57.0.0   MAIN                                                              06/06/2026 20:40:41 PAGE 11  
+
+ 613   2          }
+ 614   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1868    ----
+   CONSTANT SIZE    =    294    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     42      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

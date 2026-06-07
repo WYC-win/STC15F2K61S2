@@ -1,0 +1,9 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\LCD1602.obj",
+".\Objects\AD_DA.obj",
+".\Objects\iic.obj",
+".\Objects\kbd.obj",
+".\Objects\latch.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
