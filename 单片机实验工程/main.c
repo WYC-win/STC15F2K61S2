@@ -73,7 +73,7 @@ unsigned char da_index;              // DA查表索引
 unsigned char da_val;                // DA当前输出值
 unsigned char rx_buf[28];            // 串口接收缓冲(27字符+结束符)
 unsigned char rx_index;              // 接收缓冲索引
-unsigned char refresh_count;         // LCD刷新计数
+unsigned int  refresh_count;          // LCD刷新计数
 unsigned int  rx_idle_cnt;           // 串口空闲计数(新数据清屏用)
 bit da_flag;                         // DA更新标志（ISR→主循环）
 
@@ -126,14 +126,6 @@ void Uart1_Isr(void) interrupt 4
                 {
                     rx_buf[rx_index++] = ch;
                     rx_buf[rx_index] = '\0';
-                }
-                else
-                {
-                    unsigned char j;
-                    for(j = 0; j < 26; j++)
-                        rx_buf[j] = rx_buf[j + 1];
-                    rx_buf[26] = ch;
-                    rx_buf[27] = '\0';
                 }
             }
         }
@@ -211,7 +203,7 @@ void show_main_menu(void)
 {
     LCD_Init();
     LCD_ShowString(1, 1, "1.LED  2.UART");
-    LCD_ShowString(2, 1, "3.DA   Name  ID");
+    LCD_ShowString(2, 1, "3.DA   WYC");
 }
 
 //==================== LED流水灯模式 ====================
@@ -233,8 +225,6 @@ void led_mode(void)
     LCD_ShowNum(2, 3, led_interval, 3);
 
     Timer0_LED_Init();
-    IT0 = 1;                    // INT0下降沿触发
-    EX0 = 1;                    // 使能INT0
     EA  = 1;
 
     // 串口上报初始值
@@ -248,7 +238,7 @@ void led_mode(void)
         if(key == KEY_BACK)
             break;
 
-        // S4按下：LED间隔递减（INT0功能）
+        // S4按下：LED间隔减10
         if(key == KEY_INT0)
         {
             if(led_interval > 10)
@@ -260,7 +250,9 @@ void led_mode(void)
             uart_send_num(led_interval);
             uart_send_string("ms\r\n");
 
+            EA = 0;
             LCD_ShowNum(2, 3, led_interval, 3);
+            EA = 1;
             led_tick = 0;
         }
 
@@ -268,14 +260,15 @@ void led_mode(void)
         if(refresh_count >= 500)
         {
             refresh_count = 0;
+            EA = 0;
             LCD_ShowNum(2, 3, led_interval, 3);
+            EA = 1;
         }
     }
 
     // 退出清理
     ET0 = 0;
     TR0 = 0;
-    EX0 = 0;
     init();
 }
 
@@ -324,25 +317,27 @@ void uart_mode(void)
 
         while(1)
         {
+            unsigned char digit = 0;
+
             key = key_back();
             if(key == KEY_BACK)
                 break;
 
-            // 数字按键：8→1,12→2,16→3,9→4,13→5,17→6,11→7,15→8,19→9,6→0
-            if(key == KEY_1)        uart_send_byte('1');
-            else if(key == KEY_2)   uart_send_byte('2');
-            else if(key == KEY_3)   uart_send_byte('3');
-            else if(key == KEY_4)   uart_send_byte('4');
-            else if(key == KEY_5)   uart_send_byte('5');
-            else if(key == KEY_6)   uart_send_byte('6');
-            else if(key == KEY_7)   uart_send_byte('7');
-            else if(key == KEY_8)   uart_send_byte('8');
-            else if(key == KEY_9)   uart_send_byte('9');
-            else if(key == KEY_0)   uart_send_byte('0');
+            // 数字按键：8→1,12→2,16→3,9→4,13→5,17→6,11→7,15→8,19→9,7→0
+            if(key == KEY_1)        { uart_send_byte('1'); digit = '1'; }
+            else if(key == KEY_2)   { uart_send_byte('2'); digit = '2'; }
+            else if(key == KEY_3)   { uart_send_byte('3'); digit = '3'; }
+            else if(key == KEY_4)   { uart_send_byte('4'); digit = '4'; }
+            else if(key == KEY_5)   { uart_send_byte('5'); digit = '5'; }
+            else if(key == KEY_6)   { uart_send_byte('6'); digit = '6'; }
+            else if(key == KEY_7)   { uart_send_byte('7'); digit = '7'; }
+            else if(key == KEY_8)   { uart_send_byte('8'); digit = '8'; }
+            else if(key == KEY_9)   { uart_send_byte('9'); digit = '9'; }
+            else if(key == KEY_DOWN){ uart_send_byte('0'); digit = '0'; }
             else continue;      // 非数字键，不刷新LCD
 
             LCD_ShowChar(2, 5, '>');
-            LCD_ShowNum(2, 7, key, 2);
+            LCD_ShowChar(2, 7, digit);
         }
         REN = 1;            // 恢复接收使能
     }
@@ -552,26 +547,7 @@ void Timer0_Isr(void) interrupt 1
     }
 }
 
-//==================== INT0中断(LED间隔递减) ====================
-void INT0_Isr(void) interrupt 0
-{
-    if(page_count == state_led)
-    {
-        if(led_interval > 10)
-            led_interval -= 10;
-        else
-            led_interval = 500;
-
-        // 串口上报
-        uart_send_string("T=");
-        uart_send_num(led_interval);
-        uart_send_string("ms\r\n");
-
-        // 同步LCD和LED节拍
-        LCD_ShowNum(2, 3, led_interval, 3);
-        led_tick = 0;
-    }
-}
+//==================== INT0 已弃用（避免与矩阵键盘P3.2冲突）====================
 
 //==================== 主函数 ====================
 void main()
